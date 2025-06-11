@@ -42,7 +42,7 @@ export const FieldEditor: React.FC<FieldEditorProps> = ({ field, onUpdate }) => 
     'input', 'textarea', 'select', 'datepicker', 'toggle', 'relation-picker', 'image-picker'
   ];
 
-  const indexTypes = ['BTree', 'GIN', 'GIST'];
+  const indexTypes = ['none', 'BTree', 'GIN', 'GIST'];
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4 p-4 bg-white rounded-lg border">
@@ -259,15 +259,14 @@ export const FieldEditor: React.FC<FieldEditorProps> = ({ field, onUpdate }) => 
 
         <div>
           <Label htmlFor="index-type">Type d'index</Label>
-          <Select value={field.index || ''} onValueChange={(value) => updateField('index', value || undefined)}>
+          <Select value={field.index || 'none'} onValueChange={(value) => updateField('index', value === 'none' ? undefined : value)}>
             <SelectTrigger className="mt-1">
               <SelectValue placeholder="Aucun index" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Aucun index</SelectItem>
               {indexTypes.map(type => (
                 <SelectItem key={type} value={type}>
-                  {type}
+                  {type === 'none' ? 'Aucun index' : type}
                 </SelectItem>
               ))}
             </SelectContent>
