@@ -1,288 +1,234 @@
-import React, { useState, useEffect } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, Field, Schema } from '@/types/schema';
-import { SchemaEditor } from '@/components/SchemaEditor';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Plus, Database, FileCode, Zap, Download, Settings, Sparkles, Upload, Save } from 'lucide-react';
+import { TableEditor } from '@/components/TableEditor';
+import { ArtifactViewer } from '@/components/ArtifactViewer';
+import { ArtifactGenerator } from '@/components/ArtifactGenerator';
 import { SchemaPresets } from '@/components/SchemaPresets';
 import { GeminiIntegration } from '@/components/GeminiIntegration';
-import { useToast } from "@/hooks/use-toast"
-import {
-  Download,
-  Copy,
-  Plus,
-  Edit,
-  Settings,
-  BookOpen,
-  Sparkles
-} from 'lucide-react';
+import { Table, Schema, GeneratedArtifacts } from '@/types/schema';
+import { useToast } from '@/hooks/use-toast';
 
 const Index = () => {
   const [schema, setSchema] = useState<Schema>({
-    name: "Mon Schéma",
-    description: "Un nouveau schéma de base de données",
-    version: "1.0.0",
-    tables: []
+    tables: [],
+    name: 'Mon Projet',
+    description: '',
+    version: '1.0.0'
   });
-  const [activeTab, setActiveTab] = useState("editor");
-  const [activeTable, setActiveTable] = useState<Table | undefined>(undefined);
-  const [schemaName, setSchemaName] = useState("Mon Schéma");
-  const [schemaDescription, setSchemaDescription] = useState("Un nouveau schéma de base de données");
-  const { toast } = useToast()
+  
+  const [activeTableId, setActiveTableId] = useState<string | null>(null);
+  const [artifacts, setArtifacts] = useState<GeneratedArtifacts | null>(null);
+  const [artifactTableName, setArtifactTableName] = useState<string>('');
+  const [showArtifacts, setShowArtifacts] = useState(false);
+  
+  const { toast } = useToast();
 
-  useEffect(() => {
-    setSchemaName(schema.name);
-    setSchemaDescription(schema.description);
-  }, [schema]);
-
-  const handleApplyPreset = (preset: Schema) => {
-    setSchema({
-      ...preset,
-      tables: preset.tables.map(table => ({
-        ...table,
-        id: crypto.randomUUID()
-      }))
-    });
-    toast({
-      title: "Preset appliqué",
-      description: `Le preset "${preset.name}" a été chargé.`,
-    })
-  };
-
-  const handleMergePresets = (presets: Schema[]) => {
-    const mergedTables = presets.flatMap(preset => 
-      preset.tables.map(table => ({
-        ...table,
-        id: crypto.randomUUID() // Generate new IDs to avoid conflicts
-      }))
-    );
-
-    const updatedSchema = {
-      ...schema,
-      name: `Schéma fusionné (${presets.map(p => p.name).join(' + ')})`,
-      description: `Schéma créé par fusion de: ${presets.map(p => p.name).join(', ')}`,
-      tables: [...schema.tables, ...mergedTables]
-    };
-
-    setSchema(updatedSchema);
-    toast({
-      title: "Presets fusionnés",
-      description: `${mergedTables.length} tables ajoutées depuis ${presets.length} presets.`,
-    });
-  };
-
-  const handleSchemaNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSchemaName(e.target.value);
-  };
-
-  const handleSchemaDescriptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setSchemaDescription(e.target.value);
-  };
-
-  const handleUpdateSchemaMeta = () => {
-    setSchema({
-      ...schema,
-      name: schemaName,
-      description: schemaDescription
-    });
-    toast({
-      title: "Méta mis à jour",
-      description: "Nom et description du schéma mis à jour.",
-    })
-  };
-
-  const handleAddTable = () => {
+  const addTable = () => {
     const newTable: Table = {
       id: crypto.randomUUID(),
-      name: "Nouvelle Table",
-      description: "Description de la nouvelle table",
-      category: "Général",
-      fields: []
+      name: '',
+      description: '',
+      fields: [],
+      category: ''
     };
-    setSchema({
-      ...schema,
-      tables: [...schema.tables, newTable]
-    });
-    setActiveTable(newTable);
-    toast({
-      title: "Table ajoutée",
-      description: `La table "${newTable.name}" a été ajoutée au schéma.`,
-    })
+    
+    setSchema(prev => ({
+      ...prev,
+      tables: [...prev.tables, newTable]
+    }));
+    
+    setActiveTableId(newTable.id);
   };
 
-  const handleUpdateTable = (updatedTable: Table) => {
-    setSchema({
-      ...schema,
-      tables: schema.tables.map(table =>
-        table.id === updatedTable.id ? updatedTable : table
+  const updateTable = (tableId: string, updatedTable: Table) => {
+    setSchema(prev => ({
+      ...prev,
+      tables: prev.tables.map(table => 
+        table.id === tableId ? updatedTable : table
       )
-    });
-    setActiveTable(updatedTable);
-    toast({
-      title: "Table mise à jour",
-      description: `La table "${updatedTable.name}" a été modifiée.`,
-    })
+    }));
   };
 
-  const handleDeleteTable = (tableToDelete: Table) => {
-    setSchema({
-      ...schema,
-      tables: schema.tables.filter(table => table.id !== tableToDelete.id)
-    });
-    setActiveTable(undefined);
-    toast({
-      title: "Table supprimée",
-      description: `La table "${tableToDelete.name}" a été supprimée.`,
-    })
+  const deleteTable = (tableId: string) => {
+    setSchema(prev => ({
+      ...prev,
+      tables: prev.tables.filter(table => table.id !== tableId)
+    }));
+    
+    if (activeTableId === tableId) {
+      setActiveTableId(null);
+    }
   };
 
-  const handleDuplicateTable = (tableToDuplicate: Table) => {
-    const duplicatedTable: Table = {
-      ...tableToDuplicate,
-      id: crypto.randomUUID(),
-      name: `${tableToDuplicate.name} (copie)`
-    };
-    setSchema({
-      ...schema,
-      tables: [...schema.tables, duplicatedTable]
-    });
-    setActiveTable(duplicatedTable);
-    toast({
-      title: "Table dupliquée",
-      description: `La table "${duplicatedTable.name}" a été dupliquée.`,
-    })
-  };
-
-  const handleAddField = (table: Table) => {
-    const newField: Field = {
-      name: "nouveau_champ",
-      type_general: "string",
-      type_sql: "VARCHAR(255)",
-      required: false,
-      unique: false,
-      primary_key: false,
-      description: "Description du nouveau champ",
-      example_value: "exemple",
-      slug_compatible: false,
-      acf_field_type: "text",
-      ui_component: "input"
-    };
-    const updatedTable = {
-      ...table,
-      fields: [...table.fields, newField]
-    };
-    handleUpdateTable(updatedTable);
-    toast({
-      title: "Champ ajouté",
-      description: `Le champ "${newField.name}" a été ajouté à la table "${table.name}".`,
-    })
-  };
-
-  const handleExportSchema = () => {
-    const jsonString = JSON.stringify(schema, null, 2);
-    const blob = new Blob([jsonString], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${schema.name.replace(/ /g, "_")}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    toast({
-      title: "Schéma exporté",
-      description: "Le schéma a été exporté au format JSON.",
-    })
-  };
-
-  const handleCopySchema = () => {
-    navigator.clipboard.writeText(JSON.stringify(schema, null, 2))
-      .then(() => {
-        toast({
-          title: "Schéma copié",
-          description: "Le schéma a été copié dans le presse-papier.",
-        })
-      })
-      .catch(err => {
-        toast({
-          title: "Erreur",
-          description: "Impossible de copier le schéma.",
-          variant: "destructive"
-        })
-        console.error("Erreur lors de la copie du schéma :", err);
-      });
-  };
-
-  const handleImportSchema = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) {
+  const generateArtifacts = (table: Table) => {
+    if (!table.name || table.fields.length === 0) {
       toast({
-        title: "Aucun fichier sélectionné",
-        description: "Veuillez sélectionner un fichier JSON.",
+        title: "Erreur",
+        description: "La table doit avoir un nom et au moins un champ.",
         variant: "destructive"
-      })
+      });
       return;
     }
 
+    const generatedArtifacts = ArtifactGenerator.generateAll(table);
+    setArtifacts(generatedArtifacts);
+    setArtifactTableName(table.name);
+    setShowArtifacts(true);
+    
+    toast({
+      title: "Artefacts générés !",
+      description: `Tous les formats ont été générés pour la table "${table.name}".`,
+    });
+  };
+
+  const generateAllArtifacts = () => {
+    if (schema.tables.length === 0) {
+      toast({
+        title: "Aucune table",
+        description: "Ajoutez au moins une table pour générer les artefacts.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Générer un ZIP avec tous les artefacts (pour une future version)
+    toast({
+      title: "Fonctionnalité à venir",
+      description: "La génération globale sera disponible prochainement.",
+    });
+  };
+
+  const applyPreset = (presetSchema: Schema) => {
+    setSchema(presetSchema);
+    if (presetSchema.tables.length > 0) {
+      setActiveTableId(presetSchema.tables[0].id);
+    }
+    
+    toast({
+      title: "Preset appliqué",
+      description: `Le preset "${presetSchema.name}" a été chargé avec ${presetSchema.tables.length} table(s).`,
+    });
+  };
+
+  const exportSchema = () => {
+    const dataStr = JSON.stringify(schema, null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+    
+    const exportFileDefaultName = `schema-${schema.name.toLowerCase().replace(/\s+/g, '-')}.json`;
+    
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', exportFileDefaultName);
+    linkElement.click();
+    
+    toast({
+      title: "Schema exporté",
+      description: `Le fichier ${exportFileDefaultName} a été téléchargé.`,
+    });
+  };
+
+  const importSchema = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
     const reader = new FileReader();
-    reader.onload = (event: ProgressEvent<FileReader>) => {
+    reader.onload = (e) => {
       try {
-        const jsonString = event.target?.result as string;
-        const importedSchema = JSON.parse(jsonString);
+        const importedSchema = JSON.parse(e.target?.result as string);
         setSchema(importedSchema);
+        setActiveTableId(importedSchema.tables?.[0]?.id || null);
+        
         toast({
-          title: "Schéma importé",
-          description: `Le schéma "${importedSchema.name}" a été importé.`,
-        })
+          title: "Schema importé",
+          description: `Le schema "${importedSchema.name}" a été chargé.`,
+        });
       } catch (error) {
         toast({
-          title: "Erreur d'importation",
-          description: "Impossible d'importer le schéma. Vérifiez le format JSON.",
+          title: "Erreur d'import",
+          description: "Le fichier JSON n'est pas valide.",
           variant: "destructive"
-        })
-        console.error("Erreur lors de l'importation du schéma :", error);
+        });
       }
     };
     reader.readAsText(file);
   };
 
+  const activeTable = schema.tables.find(t => t.id === activeTableId);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <header className="bg-white shadow-md py-4">
-        <div className="container mx-auto px-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-6 w-6 text-blue-600" />
-            <h1 className="text-2xl font-bold text-blue-800">
-              Esquisse de Schéma
-            </h1>
-          </div>
-          <div className="space-x-2">
-            <Button variant="outline" size="sm" onClick={handleCopySchema}>
-              <Copy className="h-4 w-4 mr-2" />
-              Copier
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleExportSchema}>
-              <Download className="h-4 w-4 mr-2" />
-              Exporter
-            </Button>
-            <Input
-              type="file"
-              id="import-schema"
-              className="hidden"
-              accept=".json"
-              onChange={handleImportSchema}
-            />
-            <Label htmlFor="import-schema" className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-muted h-9 px-4 py-2 bg-slate-100 border border-slate-200">
-              Importer
-            </Label>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      {/* Header */}
+      <header className="bg-white/80 backdrop-blur-sm border-b border-slate-200 sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center gap-3">
+              <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-2 rounded-lg">
+                <Database className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-slate-800">
+                  DataStruct Generator
+                </h1>
+                <p className="text-sm text-slate-600">
+                  Générateur multi-format avec IA Gemini Flash 2.0
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-3">
+              <Badge variant="secondary" className="text-xs">
+                {schema.tables.length} table{schema.tables.length !== 1 ? 's' : ''}
+              </Badge>
+              
+              <input
+                type="file"
+                accept=".json"
+                onChange={importSchema}
+                className="hidden"
+                id="import-schema"
+              />
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => document.getElementById('import-schema')?.click()}
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Importer
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={exportSchema}
+                disabled={schema.tables.length === 0}
+              >
+                <Save className="h-4 w-4 mr-2" />
+                Exporter
+              </Button>
+              
+              <Button 
+                onClick={generateAllArtifacts}
+                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                disabled={schema.tables.length === 0}
+              >
+                <Sparkles className="h-4 w-4 mr-2" />
+                Générer tout
+              </Button>
+            </div>
           </div>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <Tabs defaultValue="editor" className="w-full">
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="editor">Éditeur</TabsTrigger>
             <TabsTrigger value="presets">Presets</TabsTrigger>
@@ -290,128 +236,256 @@ const Index = () => {
             <TabsTrigger value="config">Configuration</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="editor" className="space-y-6">
-            <div className="md:flex md:space-x-6">
-              <div className="w-full md:w-1/2 space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center">
-                      <Edit className="h-4 w-4 mr-2" />
-                      Table: {activeTable?.name || 'Aucune table sélectionnée'}
+          <TabsContent value="editor" className="mt-6">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+              {/* Sidebar - Navigation des tables */}
+              <div className="lg:col-span-1">
+                <Card className="sticky top-24">
+                  <CardHeader className="bg-gradient-to-r from-slate-50 to-blue-50">
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <Database className="h-5 w-5" />
+                      Tables ({schema.tables.length})
                     </CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    {activeTable ? (
-                      <SchemaEditor
-                        table={activeTable}
-                        onUpdateTable={handleUpdateTable}
-                        onDeleteTable={handleDeleteTable}
-                        onDuplicateTable={handleDuplicateTable}
-                        onAddField={() => handleAddField(activeTable)}
-                      />
-                    ) : (
-                      <p className="text-sm text-slate-500">
-                        Sélectionnez une table pour la modifier ou créez-en une nouvelle.
-                      </p>
-                    )}
+                  <CardContent className="p-4 space-y-4">
+                    <div className="space-y-2">
+                      {schema.tables.map(table => (
+                        <div 
+                          key={table.id}
+                          className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                            activeTableId === table.id 
+                              ? 'bg-blue-50 border-blue-200 shadow-sm' 
+                              : 'bg-white border-slate-200 hover:bg-slate-50'
+                          }`}
+                          onClick={() => setActiveTableId(table.id)}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="font-medium text-sm">
+                              {table.name || 'Table sans nom'}
+                            </span>
+                            <Badge variant="outline" className="text-xs">
+                              {table.fields.length}
+                            </Badge>
+                          </div>
+                          {table.description && (
+                            <p className="text-xs text-slate-600 mt-1 truncate">
+                              {table.description}
+                            </p>
+                          )}
+                          {table.category && (
+                            <Badge variant="secondary" className="text-xs mt-1">
+                              {table.category}
+                            </Badge>
+                          )}
+                        </div>
+                      ))}
+                      
+                      <Button 
+                        onClick={addTable}
+                        variant="outline" 
+                        className="w-full mt-3"
+                        size="sm"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Ajouter une table
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               </div>
 
-              <div className="w-full md:w-1/2 space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center">
-                      <BookOpen className="h-4 w-4 mr-2" />
-                      Schéma: {schema.name}
-                    </CardTitle>
-                    <p className="text-sm text-slate-500">
-                      Gérez les tables et la structure globale de votre schéma.
-                    </p>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {schema.tables.length === 0 ? (
-                      <p className="text-sm text-slate-500">
-                        Aucune table dans le schéma. Ajoutez une table pour commencer.
-                      </p>
-                    ) : (
-                      <ul className="list-none space-y-2">
-                        {schema.tables.map(table => (
-                          <li
-                            key={table.id}
-                            className={`px-4 py-2 rounded-md cursor-pointer hover:bg-slate-100 ${activeTable?.id === table.id ? 'bg-blue-50 text-blue-700 font-medium' : 'text-slate-700'}`}
-                            onClick={() => setActiveTable(table)}
-                          >
-                            {table.name} ({table.fields.length} champs)
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                    <Button onClick={handleAddTable} className="w-full">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Ajouter une table
-                    </Button>
-                  </CardContent>
-                </Card>
+              {/* Main Content */}
+              <div className="lg:col-span-3">
+                {activeTable ? (
+                  <TableEditor
+                    table={activeTable}
+                    onUpdate={(updatedTable) => updateTable(activeTable.id, updatedTable)}
+                    onDelete={() => deleteTable(activeTable.id)}
+                    onGenerateArtifacts={generateArtifacts}
+                  />
+                ) : (
+                  <Card className="h-96">
+                    <CardContent className="flex items-center justify-center h-full">
+                      <div className="text-center">
+                        <Database className="h-16 w-16 mx-auto text-slate-300 mb-4" />
+                        <h3 className="text-lg font-medium text-slate-600 mb-2">
+                          Aucune table sélectionnée
+                        </h3>
+                        <p className="text-slate-500 mb-4">
+                          Sélectionnez une table existante ou créez-en une nouvelle
+                        </p>
+                        <Button onClick={addTable} className="bg-blue-600 hover:bg-blue-700">
+                          <Plus className="h-4 w-4 mr-2" />
+                          Créer ma première table
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
               </div>
             </div>
           </TabsContent>
 
-          <TabsContent value="presets" className="space-y-6">
-            <SchemaPresets 
-              onApplyPreset={handleApplyPreset}
-              onMergePresets={handleMergePresets}
-            />
+          <TabsContent value="presets" className="mt-6">
+            <SchemaPresets onApplyPreset={applyPreset} />
           </TabsContent>
 
-          <TabsContent value="ai" className="space-y-6">
+          <TabsContent value="ai" className="mt-6">
             <GeminiIntegration
               schema={schema}
               activeTable={activeTable}
               onSchemaUpdate={setSchema}
-              onTableUpdate={handleUpdateTable}
+              onTableUpdate={(updatedTable) => {
+                if (activeTable) {
+                  updateTable(activeTable.id, updatedTable);
+                }
+              }}
             />
           </TabsContent>
 
-          <TabsContent value="config" className="space-y-6">
-            <Card className="w-full">
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Settings className="h-4 w-4 mr-2" />
-                  Configuration du Schéma
+          <TabsContent value="config" className="mt-6">
+            <Card>
+              <CardHeader className="bg-gradient-to-r from-slate-50 to-blue-50">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Settings className="h-5 w-5" />
+                  Configuration du Projet
                 </CardTitle>
-                <p className="text-sm text-slate-500">
-                  Personnalisez les informations générales de votre schéma.
-                </p>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="schema-name">Nom du Schéma</Label>
-                  <Input
-                    type="text"
-                    id="schema-name"
-                    value={schemaName}
-                    onChange={handleSchemaNameChange}
-                    className="mt-1"
-                  />
+              <CardContent className="p-6 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="project-name">Nom du projet</Label>
+                    <Input
+                      id="project-name"
+                      value={schema.name}
+                      onChange={(e) => setSchema(prev => ({ ...prev, name: e.target.value }))}
+                      className="mt-1"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="project-version">Version</Label>
+                    <Input
+                      id="project-version"
+                      value={schema.version}
+                      onChange={(e) => setSchema(prev => ({ ...prev, version: e.target.value }))}
+                      className="mt-1"
+                    />
+                  </div>
                 </div>
+                
                 <div>
-                  <Label htmlFor="schema-description">Description du Schéma</Label>
+                  <Label htmlFor="project-description">Description</Label>
                   <Textarea
-                    id="schema-description"
-                    value={schemaDescription}
-                    onChange={handleSchemaDescriptionChange}
+                    id="project-description"
+                    value={schema.description}
+                    onChange={(e) => setSchema(prev => ({ ...prev, description: e.target.value }))}
                     className="mt-1"
+                    rows={4}
                   />
                 </div>
-                <Button onClick={handleUpdateSchemaMeta}>
-                  Mettre à jour
-                </Button>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-slate-50 rounded-lg">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-slate-800">
+                      {schema.tables.length}
+                    </div>
+                    <div className="text-xs text-slate-600">Tables</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-slate-800">
+                      {schema.tables.reduce((acc, table) => acc + table.fields.length, 0)}
+                    </div>
+                    <div className="text-xs text-slate-600">Champs totaux</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-blue-600">
+                      {schema.tables.filter(t => t.fields.some(f => f.primary_key)).length}
+                    </div>
+                    <div className="text-xs text-slate-600">Clés primaires</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-green-600">
+                      {schema.tables.reduce((acc, table) => acc + table.fields.filter(f => f.type_general === 'relation').length, 0)}
+                    </div>
+                    <div className="text-xs text-slate-600">Relations</div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
-      </main>
+      </div>
+
+      {/* Features Panel */}
+      <div className="bg-white border-t border-slate-200 mt-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-bold text-slate-800 mb-4">
+              Formats de sortie supportés
+            </h2>
+            <p className="text-slate-600">
+              Générez automatiquement du code prêt à utiliser pour tous vos projets
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[
+              {
+                icon: Database,
+                title: 'PostgreSQL/Supabase',
+                description: 'Scripts SQL complets avec RLS, contraintes et index optimisés'
+              },
+              {
+                icon: FileCode,
+                title: 'Astro ContentCollection',
+                description: 'Configuration Zod typée et pages dynamiques [slug].astro'
+              },
+              {
+                icon: FileCode,
+                title: 'WordPress ACF',
+                description: 'Export JSON ACF prêt à importer dans WordPress'
+              },
+              {
+                icon: Download,
+                title: 'CSV/XLSX',
+                description: 'Exports documentés avec structure complète des données'
+              },
+              {
+                icon: Zap,
+                title: 'Validation avancée',
+                description: 'Relations, cardinalités, slugs et contraintes automatiques'
+              },
+              {
+                icon: FileCode,
+                title: 'Documentation',
+                description: 'Documentation technique générée automatiquement'
+              }
+            ].map((feature, index) => (
+              <Card key={index} className="border-slate-200 hover:shadow-lg transition-shadow">
+                <CardContent className="p-6 text-center">
+                  <feature.icon className="h-12 w-12 mx-auto text-blue-600 mb-4" />
+                  <h3 className="font-semibold text-slate-800 mb-2">
+                    {feature.title}
+                  </h3>
+                  <p className="text-sm text-slate-600">
+                    {feature.description}
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Artifact Viewer Modal */}
+      {showArtifacts && artifacts && (
+        <ArtifactViewer
+          artifacts={artifacts}
+          tableName={artifactTableName}
+          onClose={() => setShowArtifacts(false)}
+        />
+      )}
     </div>
   );
 };

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Sparkles, Loader2, Lightbulb, Plus, Wand2, AlertCircle, Database } from 'lucide-react';
+import { Sparkles, Loader2, Lightbulb, Plus, Wand2, AlertCircle } from 'lucide-react';
 import { Table, Field, Schema } from '@/types/schema';
 import { GeminiService, GeminiSuggestion } from '@/services/GeminiService';
 import { useToast } from '@/hooks/use-toast';
@@ -28,8 +29,6 @@ export const GeminiIntegration: React.FC<GeminiIntegrationProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<GeminiSuggestion[]>([]);
   const [context, setContext] = useState('');
-  const [sampleData, setSampleData] = useState<any[]>([]);
-  const [dataRowCount, setDataRowCount] = useState(5);
   const { toast } = useToast();
 
   const geminiService = apiKey ? new GeminiService({ apiKey }) : null;
@@ -146,75 +145,6 @@ export const GeminiIntegration: React.FC<GeminiIntegrationProps> = ({
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const generateSampleData = async () => {
-    if (!geminiService || !activeTable) {
-      toast({
-        title: "Prérequis manquants",
-        description: "Clé API et table active requises.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const data = await geminiService.generateSampleData(activeTable, dataRowCount, context);
-      setSampleData(data);
-      
-      toast({
-        title: "Données générées",
-        description: `${data.length} lignes d'exemple créées pour "${activeTable.name}".`,
-      });
-    } catch (error) {
-      console.error('Error generating sample data:', error);
-      toast({
-        title: "Erreur de génération",
-        description: "Impossible de générer les données d'exemple.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const exportSampleDataAsCSV = () => {
-    if (!activeTable || sampleData.length === 0) return;
-
-    // Create transposed CSV format as requested
-    const headers = activeTable.fields.map(f => f.name);
-    const rows = [
-      ['Type général', ...activeTable.fields.map(f => f.type_general)],
-      ['Type SQL', ...activeTable.fields.map(f => f.type_sql)],
-      ['Description', ...activeTable.fields.map(f => f.description)],
-      ['Requis', ...activeTable.fields.map(f => f.required ? 'Oui' : 'Non')],
-      ['Référence / Enum / Collection', ...activeTable.fields.map(f => 
-        f.foreign_key || f.enum_values?.join(',') || '-'
-      )],
-      ['Catégorie', ...activeTable.fields.map(f => f.ui_component || 'input')],
-      ...sampleData.map((row, index) => [
-        `Exemple ${index + 1}`, 
-        ...headers.map(header => row[header] || '')
-      ]),
-      ['Notes', ...activeTable.fields.map(f => 
-        `${f.description}${f.example_value ? ` Exemple: ${f.example_value}` : ''}`
-      )]
-    ];
-
-    const csvContent = rows.map(row => 
-      row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join('\t')
-    ).join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `${activeTable.name}_data_transpose.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
   };
 
   const applySuggestion = (suggestion: GeminiSuggestion) => {
@@ -369,7 +299,7 @@ export const GeminiIntegration: React.FC<GeminiIntegrationProps> = ({
         </div>
 
         {/* Actions IA */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Button
             onClick={analyzeSchema}
             disabled={!apiKey || isLoading || schema.tables.length === 0}
@@ -396,28 +326,21 @@ export const GeminiIntegration: React.FC<GeminiIntegrationProps> = ({
             )}
             Améliorer la table
           </Button>
-        </div>
 
-        {/* Contexte et génération */}
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="context">Contexte du projet</Label>
+          <div className="space-y-2">
             <Textarea
-              id="context"
               value={context}
               onChange={(e) => setContext(e.target.value)}
-              placeholder="Décrivez votre projet (ex: blog culinaire, boutique de vêtements, plateforme de formation...)"
-              rows={3}
-              className="mt-1"
+              placeholder="Contexte pour génération (ex: blog, e-commerce...)"
+              rows={1}
+              className="text-sm"
             />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Button
               onClick={generateFields}
               disabled={!apiKey || !activeTable || !context.trim() || isLoading}
               variant="outline"
-              className="border-green-200 hover:bg-green-50"
+              size="sm"
+              className="w-full border-green-200 hover:bg-green-50"
             >
               {isLoading ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -426,84 +349,8 @@ export const GeminiIntegration: React.FC<GeminiIntegrationProps> = ({
               )}
               Générer champs
             </Button>
-
-            <div className="flex items-center gap-2">
-              <Input
-                type="number"
-                min="1"
-                max="20"
-                value={dataRowCount}
-                onChange={(e) => setDataRowCount(parseInt(e.target.value) || 5)}
-                className="w-16"
-              />
-              <Button
-                onClick={generateSampleData}
-                disabled={!apiKey || !activeTable || isLoading}
-                variant="outline"
-                className="border-blue-200 hover:bg-blue-50 flex-1"
-              >
-                {isLoading ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Database className="h-4 w-4 mr-2" />
-                )}
-                Générer données
-              </Button>
-            </div>
-
-            {sampleData.length > 0 && (
-              <Button
-                onClick={exportSampleDataAsCSV}
-                variant="outline"
-                className="border-orange-200 hover:bg-orange-50"
-              >
-                Export CSV transposé
-              </Button>
-            )}
           </div>
         </div>
-
-        {/* Données d'exemple générées */}
-        {sampleData.length > 0 && activeTable && (
-          <div className="space-y-4">
-            <h3 className="font-semibold text-slate-800 flex items-center gap-2">
-              <Database className="h-4 w-4" />
-              Données d'exemple générées ({sampleData.length} lignes)
-            </h3>
-            
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm border-collapse border border-slate-200">
-                <thead>
-                  <tr className="bg-slate-50">
-                    {activeTable.fields.map(field => (
-                      <th key={field.name} className="border border-slate-200 px-2 py-1 text-left font-medium">
-                        {field.name}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {sampleData.slice(0, 3).map((row, index) => (
-                    <tr key={index} className="hover:bg-slate-50">
-                      {activeTable.fields.map(field => (
-                        <td key={field.name} className="border border-slate-200 px-2 py-1">
-                          {String(row[field.name] || '').substring(0, 50)}
-                          {String(row[field.name] || '').length > 50 ? '...' : ''}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {sampleData.length > 3 && (
-              <p className="text-xs text-slate-500 text-center">
-                ... et {sampleData.length - 3} autres lignes (exportez pour voir toutes)
-              </p>
-            )}
-          </div>
-        )}
 
         {/* Suggestions */}
         {suggestions.length > 0 && (
@@ -561,7 +408,7 @@ export const GeminiIntegration: React.FC<GeminiIntegrationProps> = ({
         )}
 
         {/* Statistiques */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 p-4 bg-slate-50 rounded-lg">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-slate-50 rounded-lg">
           <div className="text-center">
             <div className="text-2xl font-bold text-slate-800">
               {schema.tables.length}
@@ -585,12 +432,6 @@ export const GeminiIntegration: React.FC<GeminiIntegrationProps> = ({
               {suggestions.filter(s => s.confidence >= 0.8).length}
             </div>
             <div className="text-xs text-slate-600">Haute confiance</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-blue-600">
-              {sampleData.length}
-            </div>
-            <div className="text-xs text-slate-600">Lignes générées</div>
           </div>
         </div>
       </CardContent>
