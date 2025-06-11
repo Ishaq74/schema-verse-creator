@@ -49,11 +49,13 @@ export class GeminiService {
       });
 
       if (!response.ok) {
-        throw new Error(`Gemini API error: ${response.status}`);
+        const errorData = await response.text();
+        console.error('Gemini API error response:', errorData);
+        throw new Error(`Gemini API error: ${response.status} - ${errorData}`);
       }
 
       const data = await response.json();
-      const generatedText = data.candidates[0]?.content?.parts[0]?.text;
+      const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
       
       if (!generatedText) {
         throw new Error('No response from Gemini API');
@@ -91,11 +93,13 @@ export class GeminiService {
       });
 
       if (!response.ok) {
-        throw new Error(`Gemini API error: ${response.status}`);
+        const errorData = await response.text();
+        console.error('Gemini API error response:', errorData);
+        throw new Error(`Gemini API error: ${response.status} - ${errorData}`);
       }
 
       const data = await response.json();
-      const generatedText = data.candidates[0]?.content?.parts[0]?.text;
+      const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
       
       if (!generatedText) {
         throw new Error('No response from Gemini API');
@@ -133,11 +137,13 @@ export class GeminiService {
       });
 
       if (!response.ok) {
-        throw new Error(`Gemini API error: ${response.status}`);
+        const errorData = await response.text();
+        console.error('Gemini API error response:', errorData);
+        throw new Error(`Gemini API error: ${response.status} - ${errorData}`);
       }
 
       const data = await response.json();
-      const generatedText = data.candidates[0]?.content?.parts[0]?.text;
+      const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
       
       if (!generatedText) {
         throw new Error('No response from Gemini API');
@@ -173,9 +179,9 @@ RETOURNE TA RÉPONSE AU FORMAT JSON :
       "description": "Description détaillée",
       "implementation": {
         "tableId": "id_table",
-        "field": {...} // ou autre structure selon le type
+        "field": {...}
       },
-      "confidence": 0.9 // score de confiance 0-1
+      "confidence": 0.9
     }
   ]
 }
@@ -198,26 +204,27 @@ INSTRUCTIONS :
 - Optimise pour le SEO (slugs, meta) et l'UX
 
 RETOURNE LA TABLE AMÉLIORÉE AU FORMAT JSON EXACT :
-${JSON.stringify({
-  id: 'string',
-  name: 'string',
-  description: 'string',
-  category: 'string',
-  fields: [{
-    name: 'string',
-    type_general: 'string',
-    type_sql: 'string',
-    required: 'boolean',
-    unique: 'boolean',
-    primary_key: 'boolean',
-    description: 'string',
-    example_value: 'string',
-    slug_compatible: 'boolean',
-    acf_field_type: 'string',
-    ui_component: 'string'
-    // ... autres propriétés optionnelles
-  }]
-}, null, 2)}
+{
+  "id": "string",
+  "name": "string",
+  "description": "string",
+  "category": "string",
+  "fields": [
+    {
+      "name": "string",
+      "type_general": "string",
+      "type_sql": "string",
+      "required": true,
+      "unique": false,
+      "primary_key": false,
+      "description": "string",
+      "example_value": "string",
+      "slug_compatible": false,
+      "acf_field_type": "string",
+      "ui_component": "string"
+    }
+  ]
+}
 `;
   }
 
@@ -241,16 +248,16 @@ RETOURNE UNIQUEMENT UN ARRAY JSON DE CHAMPS :
 [
   {
     "name": "nom_champ",
-    "type_general": "string|text|int|float|bool|datetime|enum|relation|image|uuid|json",
-    "type_sql": "type SQL complet avec contraintes",
-    "required": true/false,
-    "unique": true/false,
+    "type_general": "string",
+    "type_sql": "VARCHAR(255)",
+    "required": false,
+    "unique": false,
     "primary_key": false,
     "description": "description claire",
     "example_value": "exemple concret",
-    "slug_compatible": true/false,
-    "acf_field_type": "text|textarea|select|etc",
-    "ui_component": "input|textarea|select|datepicker|toggle|relation-picker|image-picker"
+    "slug_compatible": false,
+    "acf_field_type": "text",
+    "ui_component": "input"
   }
 ]
 `;
@@ -258,7 +265,6 @@ RETOURNE UNIQUEMENT UN ARRAY JSON DE CHAMPS :
 
   private parseSuggestions(text: string): GeminiSuggestion[] {
     try {
-      // Extraire le JSON de la réponse
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
         console.warn('No JSON found in Gemini response');
@@ -266,7 +272,7 @@ RETOURNE UNIQUEMENT UN ARRAY JSON DE CHAMPS :
       }
 
       const parsed = JSON.parse(jsonMatch[0]);
-      return parsed.suggestions || [];
+      return Array.isArray(parsed.suggestions) ? parsed.suggestions : [];
     } catch (error) {
       console.error('Error parsing Gemini suggestions:', error);
       return [];
@@ -275,7 +281,6 @@ RETOURNE UNIQUEMENT UN ARRAY JSON DE CHAMPS :
 
   private parseImprovedTable(text: string, originalTable: Table): Table {
     try {
-      // Extraire le JSON de la réponse
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
         console.warn('No JSON found in Gemini response, returning original table');
@@ -284,16 +289,29 @@ RETOURNE UNIQUEMENT UN ARRAY JSON DE CHAMPS :
 
       const parsed = JSON.parse(jsonMatch[0]);
       
-      // Valider que la structure est correcte
       if (!parsed.fields || !Array.isArray(parsed.fields)) {
         console.warn('Invalid table structure from Gemini, returning original');
         return originalTable;
       }
 
       return {
-        ...originalTable,
-        ...parsed,
-        id: originalTable.id // Conserver l'ID original
+        id: originalTable.id,
+        name: parsed.name || originalTable.name,
+        description: parsed.description || originalTable.description,
+        category: parsed.category || originalTable.category,
+        fields: parsed.fields.map((field: any) => ({
+          name: field.name || '',
+          type_general: field.type_general || 'string',
+          type_sql: field.type_sql || 'VARCHAR(255)',
+          required: Boolean(field.required),
+          unique: Boolean(field.unique),
+          primary_key: Boolean(field.primary_key),
+          description: field.description || '',
+          example_value: field.example_value || '',
+          slug_compatible: Boolean(field.slug_compatible),
+          acf_field_type: field.acf_field_type || 'text',
+          ui_component: field.ui_component || 'input'
+        }))
       };
     } catch (error) {
       console.error('Error parsing improved table:', error);
@@ -303,7 +321,6 @@ RETOURNE UNIQUEMENT UN ARRAY JSON DE CHAMPS :
 
   private parseGeneratedFields(text: string): Field[] {
     try {
-      // Extraire le JSON de la réponse
       const jsonMatch = text.match(/\[[\s\S]*\]/);
       if (!jsonMatch) {
         console.warn('No JSON array found in Gemini response');
@@ -317,11 +334,20 @@ RETOURNE UNIQUEMENT UN ARRAY JSON DE CHAMPS :
         return [];
       }
 
-      return parsed.filter(field => 
-        field.name && 
-        field.type_general && 
-        field.description
-      );
+      return parsed.filter(field => field.name && field.type_general && field.description)
+                   .map(field => ({
+                     name: field.name,
+                     type_general: field.type_general as Field['type_general'],
+                     type_sql: field.type_sql || 'VARCHAR(255)',
+                     required: Boolean(field.required),
+                     unique: Boolean(field.unique),
+                     primary_key: Boolean(field.primary_key),
+                     description: field.description,
+                     example_value: field.example_value || '',
+                     slug_compatible: Boolean(field.slug_compatible),
+                     acf_field_type: field.acf_field_type || 'text',
+                     ui_component: field.ui_component as Field['ui_component'] || 'input'
+                   }));
     } catch (error) {
       console.error('Error parsing generated fields:', error);
       return [];

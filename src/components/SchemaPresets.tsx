@@ -3,1265 +3,1063 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { BookOpen, ShoppingCart, GraduationCap, Briefcase, Users, MapPin, Sparkles } from 'lucide-react';
-import { Table, Field, Schema } from '@/types/schema';
+import { BookOpen, ShoppingCart, GraduationCap, Briefcase, Building, MapPin } from 'lucide-react';
+import { Schema } from '@/types/schema';
 
 interface SchemaPresetsProps {
-  onApplyPreset: (schema: Schema) => void;
+  onApplyPreset: (preset: Schema) => void;
 }
 
 export const SchemaPresets: React.FC<SchemaPresetsProps> = ({ onApplyPreset }) => {
-  const createBlogPreset = (): Schema => ({
-    name: 'Blog',
-    description: 'Structure complète pour un blog avec articles, auteurs, catégories et commentaires',
-    version: '1.0.0',
-    tables: [
-      {
-        id: 'authors',
-        name: 'authors',
-        description: 'Table des auteurs du blog',
-        category: 'Content',
-        fields: [
-          {
-            name: 'id',
-            type_general: 'uuid',
-            type_sql: 'UUID PRIMARY KEY DEFAULT uuid_generate_v4()',
-            required: true,
-            unique: true,
-            primary_key: true,
-            description: 'Identifiant unique de l\'auteur',
-            example_value: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
-            slug_compatible: false,
-            acf_field_type: 'text',
-            ui_component: 'input'
-          },
-          {
-            name: 'name',
-            type_general: 'string',
-            type_sql: 'VARCHAR(255) NOT NULL',
-            required: true,
-            unique: false,
-            primary_key: false,
-            description: 'Nom complet de l\'auteur',
-            example_value: 'Jean Dupont',
-            slug_compatible: true,
-            acf_field_type: 'text',
-            ui_component: 'input',
-            category: 'Identité'
-          },
-          {
-            name: 'slug',
-            type_general: 'string',
-            type_sql: 'VARCHAR(255) UNIQUE NOT NULL',
-            required: true,
-            unique: true,
-            primary_key: false,
-            description: 'Slug unique pour URL',
-            example_value: 'jean-dupont',
-            slug_compatible: true,
-            acf_field_type: 'text',
-            ui_component: 'input',
-            index: 'BTree'
-          },
-          {
-            name: 'email',
-            type_general: 'string',
-            type_sql: 'VARCHAR(255) UNIQUE NOT NULL',
-            required: true,
-            unique: true,
-            primary_key: false,
-            description: 'Email de l\'auteur',
-            example_value: 'jean.dupont@example.com',
-            slug_compatible: false,
-            acf_field_type: 'email',
-            ui_component: 'input'
-          },
-          {
-            name: 'bio',
-            type_general: 'text',
-            type_sql: 'TEXT',
-            required: false,
-            unique: false,
-            primary_key: false,
-            description: 'Biographie de l\'auteur',
-            example_value: 'Passionné de technologie et d\'écriture...',
-            slug_compatible: false,
-            acf_field_type: 'textarea',
-            ui_component: 'textarea'
-          },
-          {
-            name: 'avatar',
-            type_general: 'image',
-            type_sql: 'VARCHAR(500)',
-            required: false,
-            unique: false,
-            primary_key: false,
-            description: 'Photo de profil de l\'auteur',
-            example_value: 'https://example.com/avatars/jean-dupont.jpg',
-            slug_compatible: false,
-            acf_field_type: 'image',
-            ui_component: 'image-picker'
-          }
-        ]
-      },
-      {
-        id: 'categories',
-        name: 'categories',
-        description: 'Catégories d\'articles',
-        category: 'Content',
-        fields: [
-          {
-            name: 'id',
-            type_general: 'uuid',
-            type_sql: 'UUID PRIMARY KEY DEFAULT uuid_generate_v4()',
-            required: true,
-            unique: true,
-            primary_key: true,
-            description: 'Identifiant unique de la catégorie',
-            example_value: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
-            slug_compatible: false,
-            acf_field_type: 'text',
-            ui_component: 'input'
-          },
-          {
-            name: 'name',
-            type_general: 'string',
-            type_sql: 'VARCHAR(255) NOT NULL',
-            required: true,
-            unique: false,
-            primary_key: false,
-            description: 'Nom de la catégorie',
-            example_value: 'Technologie',
-            slug_compatible: true,
-            acf_field_type: 'text',
-            ui_component: 'input'
-          },
-          {
-            name: 'slug',
-            type_general: 'string',
-            type_sql: 'VARCHAR(255) UNIQUE NOT NULL',
-            required: true,
-            unique: true,
-            primary_key: false,
-            description: 'Slug unique pour URL',
-            example_value: 'technologie',
-            slug_compatible: true,
-            acf_field_type: 'text',
-            ui_component: 'input',
-            index: 'BTree'
-          },
-          {
-            name: 'description',
-            type_general: 'text',
-            type_sql: 'TEXT',
-            required: false,
-            unique: false,
-            primary_key: false,
-            description: 'Description de la catégorie',
-            example_value: 'Articles sur les dernières technologies',
-            slug_compatible: false,
-            acf_field_type: 'textarea',
-            ui_component: 'textarea'
-          }
-        ]
-      },
-      {
-        id: 'posts',
-        name: 'posts',
-        description: 'Articles de blog',
-        category: 'Content',
-        fields: [
-          {
-            name: 'id',
-            type_general: 'uuid',
-            type_sql: 'UUID PRIMARY KEY DEFAULT uuid_generate_v4()',
-            required: true,
-            unique: true,
-            primary_key: true,
-            description: 'Identifiant unique de l\'article',
-            example_value: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
-            slug_compatible: false,
-            acf_field_type: 'text',
-            ui_component: 'input'
-          },
-          {
-            name: 'title',
-            type_general: 'string',
-            type_sql: 'VARCHAR(255) NOT NULL',
-            required: true,
-            unique: false,
-            primary_key: false,
-            description: 'Titre de l\'article',
-            example_value: 'Les tendances du développement web en 2025',
-            slug_compatible: true,
-            acf_field_type: 'text',
-            ui_component: 'input'
-          },
-          {
-            name: 'slug',
-            type_general: 'string',
-            type_sql: 'VARCHAR(255) UNIQUE NOT NULL',
-            required: true,
-            unique: true,
-            primary_key: false,
-            description: 'Slug unique pour URL',
-            example_value: 'tendances-developpement-web-2025',
-            slug_compatible: true,
-            acf_field_type: 'text',
-            ui_component: 'input',
-            index: 'BTree'
-          },
-          {
-            name: 'excerpt',
-            type_general: 'text',
-            type_sql: 'TEXT',
-            required: false,
-            unique: false,
-            primary_key: false,
-            description: 'Extrait de l\'article',
-            example_value: 'Découvrez les technologies qui façonneront...',
-            slug_compatible: false,
-            acf_field_type: 'textarea',
-            ui_component: 'textarea'
-          },
-          {
-            name: 'content',
-            type_general: 'text',
-            type_sql: 'TEXT NOT NULL',
-            required: true,
-            unique: false,
-            primary_key: false,
-            description: 'Contenu complet de l\'article',
-            example_value: 'Le développement web évolue rapidement...',
-            slug_compatible: false,
-            acf_field_type: 'wysiwyg',
-            ui_component: 'textarea'
-          },
-          {
-            name: 'status',
-            type_general: 'enum',
-            type_sql: 'VARCHAR(50) DEFAULT \'draft\'',
-            required: true,
-            unique: false,
-            primary_key: false,
-            description: 'Statut de publication',
-            example_value: 'published',
-            slug_compatible: false,
-            acf_field_type: 'select',
-            ui_component: 'select',
-            enum_values: ['draft', 'published', 'archived'],
-            default_sql: 'draft'
-          },
-          {
-            name: 'featured_image',
-            type_general: 'image',
-            type_sql: 'VARCHAR(500)',
-            required: false,
-            unique: false,
-            primary_key: false,
-            description: 'Image mise en avant',
-            example_value: 'https://example.com/images/web-trends-2025.jpg',
-            slug_compatible: false,
-            acf_field_type: 'image',
-            ui_component: 'image-picker'
-          },
-          {
-            name: 'author_id',
-            type_general: 'relation',
-            type_sql: 'UUID NOT NULL',
-            required: true,
-            unique: false,
-            primary_key: false,
-            description: 'Auteur de l\'article',
-            example_value: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
-            slug_compatible: false,
-            acf_field_type: 'relationship',
-            ui_component: 'relation-picker',
-            foreign_key: 'authors(id)',
-            relation_cardinality: '1-N'
-          },
-          {
-            name: 'category_id',
-            type_general: 'relation',
-            type_sql: 'UUID NOT NULL',
-            required: true,
-            unique: false,
-            primary_key: false,
-            description: 'Catégorie de l\'article',
-            example_value: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
-            slug_compatible: false,
-            acf_field_type: 'relationship',
-            ui_component: 'relation-picker',
-            foreign_key: 'categories(id)',
-            relation_cardinality: '1-N'
-          },
-          {
-            name: 'published_at',
-            type_general: 'datetime',
-            type_sql: 'TIMESTAMP WITH TIME ZONE',
-            required: false,
-            unique: false,
-            primary_key: false,
-            description: 'Date de publication',
-            example_value: '2025-01-15T10:30:00Z',
-            slug_compatible: false,
-            acf_field_type: 'date_time_picker',
-            ui_component: 'datepicker'
-          },
-          {
-            name: 'created_at',
-            type_general: 'datetime',
-            type_sql: 'TIMESTAMP WITH TIME ZONE DEFAULT now()',
-            required: true,
-            unique: false,
-            primary_key: false,
-            description: 'Date de création',
-            example_value: '2025-01-15T10:30:00Z',
-            slug_compatible: false,
-            acf_field_type: 'date_time_picker',
-            ui_component: 'datepicker',
-            default_sql: 'now()'
-          }
-        ]
-      }
-    ]
-  });
-
-  const createEcommercePreset = (): Schema => ({
-    name: 'Boutique E-commerce',
-    description: 'Structure complète pour une boutique en ligne avec produits, commandes et clients',
-    version: '1.0.0',
-    tables: [
-      {
-        id: 'products',
-        name: 'products',
-        description: 'Catalogue produits',
-        category: 'E-commerce',
-        fields: [
-          {
-            name: 'id',
-            type_general: 'uuid',
-            type_sql: 'UUID PRIMARY KEY DEFAULT uuid_generate_v4()',
-            required: true,
-            unique: true,
-            primary_key: true,
-            description: 'Identifiant unique du produit',
-            example_value: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
-            slug_compatible: false,
-            acf_field_type: 'text',
-            ui_component: 'input'
-          },
-          {
-            name: 'name',
-            type_general: 'string',
-            type_sql: 'VARCHAR(255) NOT NULL',
-            required: true,
-            unique: false,
-            primary_key: false,
-            description: 'Nom du produit',
-            example_value: 'MacBook Pro 16" M3',
-            slug_compatible: true,
-            acf_field_type: 'text',
-            ui_component: 'input'
-          },
-          {
-            name: 'slug',
-            type_general: 'string',
-            type_sql: 'VARCHAR(255) UNIQUE NOT NULL',
-            required: true,
-            unique: true,
-            primary_key: false,
-            description: 'Slug unique pour URL',
-            example_value: 'macbook-pro-16-m3',
-            slug_compatible: true,
-            acf_field_type: 'text',
-            ui_component: 'input',
-            index: 'BTree'
-          },
-          {
-            name: 'description',
-            type_general: 'text',
-            type_sql: 'TEXT',
-            required: false,
-            unique: false,
-            primary_key: false,
-            description: 'Description du produit',
-            example_value: 'Le MacBook Pro le plus puissant avec puce M3...',
-            slug_compatible: false,
-            acf_field_type: 'wysiwyg',
-            ui_component: 'textarea'
-          },
-          {
-            name: 'price',
-            type_general: 'float',
-            type_sql: 'DECIMAL(10,2) NOT NULL',
-            required: true,
-            unique: false,
-            primary_key: false,
-            description: 'Prix en euros',
-            example_value: '2999.99',
-            slug_compatible: false,
-            acf_field_type: 'number',
-            ui_component: 'input'
-          },
-          {
-            name: 'stock_quantity',
-            type_general: 'int',
-            type_sql: 'INTEGER DEFAULT 0',
-            required: true,
-            unique: false,
-            primary_key: false,
-            description: 'Quantité en stock',
-            example_value: '25',
-            slug_compatible: false,
-            acf_field_type: 'number',
-            ui_component: 'input',
-            default_sql: '0'
-          },
-          {
-            name: 'sku',
-            type_general: 'string',
-            type_sql: 'VARCHAR(100) UNIQUE',
-            required: false,
-            unique: true,
-            primary_key: false,
-            description: 'Code produit (SKU)',
-            example_value: 'MBP-16-M3-256',
-            slug_compatible: false,
-            acf_field_type: 'text',
-            ui_component: 'input'
-          },
-          {
-            name: 'category',
-            type_general: 'string',
-            type_sql: 'VARCHAR(100)',
-            required: false,
-            unique: false,
-            primary_key: false,
-            description: 'Catégorie du produit',
-            example_value: 'Ordinateurs',
-            slug_compatible: false,
-            acf_field_type: 'text',
-            ui_component: 'input'
-          },
-          {
-            name: 'images',
-            type_general: 'json',
-            type_sql: 'JSONB',
-            required: false,
-            unique: false,
-            primary_key: false,
-            description: 'URLs des images du produit',
-            example_value: '["https://example.com/img1.jpg", "https://example.com/img2.jpg"]',
-            slug_compatible: false,
-            acf_field_type: 'gallery',
-            ui_component: 'image-picker'
-          },
-          {
-            name: 'specifications',
-            type_general: 'json',
-            type_sql: 'JSONB',
-            required: false,
-            unique: false,
-            primary_key: false,
-            description: 'Spécifications techniques',
-            example_value: '{"processor": "M3", "ram": "16GB", "storage": "512GB"}',
-            slug_compatible: false,
-            acf_field_type: 'repeater',
-            ui_component: 'textarea'
-          },
-          {
-            name: 'is_active',
-            type_general: 'bool',
-            type_sql: 'BOOLEAN DEFAULT true',
-            required: true,
-            unique: false,
-            primary_key: false,
-            description: 'Produit actif/visible',
-            example_value: 'true',
-            slug_compatible: false,
-            acf_field_type: 'true_false',
-            ui_component: 'toggle',
-            default_sql: 'true'
-          }
-        ]
-      },
-      {
-        id: 'customers',
-        name: 'customers',
-        description: 'Clients de la boutique',
-        category: 'E-commerce',
-        fields: [
-          {
-            name: 'id',
-            type_general: 'uuid',
-            type_sql: 'UUID PRIMARY KEY DEFAULT uuid_generate_v4()',
-            required: true,
-            unique: true,
-            primary_key: true,
-            description: 'Identifiant unique du client',
-            example_value: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
-            slug_compatible: false,
-            acf_field_type: 'text',
-            ui_component: 'input'
-          },
-          {
-            name: 'email',
-            type_general: 'string',
-            type_sql: 'VARCHAR(255) UNIQUE NOT NULL',
-            required: true,
-            unique: true,
-            primary_key: false,
-            description: 'Email du client',
-            example_value: 'client@example.com',
-            slug_compatible: false,
-            acf_field_type: 'email',
-            ui_component: 'input'
-          },
-          {
-            name: 'first_name',
-            type_general: 'string',
-            type_sql: 'VARCHAR(255) NOT NULL',
-            required: true,
-            unique: false,
-            primary_key: false,
-            description: 'Prénom',
-            example_value: 'Marie',
-            slug_compatible: false,
-            acf_field_type: 'text',
-            ui_component: 'input'
-          },
-          {
-            name: 'last_name',
-            type_general: 'string',
-            type_sql: 'VARCHAR(255) NOT NULL',
-            required: true,
-            unique: false,
-            primary_key: false,
-            description: 'Nom de famille',
-            example_value: 'Martin',
-            slug_compatible: false,
-            acf_field_type: 'text',
-            ui_component: 'input'
-          },
-          {
-            name: 'phone',
-            type_general: 'string',
-            type_sql: 'VARCHAR(20)',
-            required: false,
-            unique: false,
-            primary_key: false,
-            description: 'Numéro de téléphone',
-            example_value: '+33 6 12 34 56 78',
-            slug_compatible: false,
-            acf_field_type: 'text',
-            ui_component: 'input'
-          },
-          {
-            name: 'address',
-            type_general: 'json',
-            type_sql: 'JSONB',
-            required: false,
-            unique: false,
-            primary_key: false,
-            description: 'Adresse complète',
-            example_value: '{"street": "123 rue de la Paix", "city": "Paris", "postal_code": "75001", "country": "France"}',
-            slug_compatible: false,
-            acf_field_type: 'group',
-            ui_component: 'textarea'
-          }
-        ]
-      }
-    ]
-  });
-
-  const createTrainingPreset = (): Schema => ({
-    name: 'Plateforme de Formations',
-    description: 'Structure complète pour une plateforme de formations en ligne',
-    version: '1.0.0',
-    tables: [
-      {
-        id: 'courses',
-        name: 'courses',
-        description: 'Catalogue des formations',
-        category: 'Education',
-        fields: [
-          {
-            name: 'id',
-            type_general: 'uuid',
-            type_sql: 'UUID PRIMARY KEY DEFAULT uuid_generate_v4()',
-            required: true,
-            unique: true,
-            primary_key: true,
-            description: 'Identifiant unique de la formation',
-            example_value: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
-            slug_compatible: false,
-            acf_field_type: 'text',
-            ui_component: 'input'
-          },
-          {
-            name: 'title',
-            type_general: 'string',
-            type_sql: 'VARCHAR(255) NOT NULL',
-            required: true,
-            unique: false,
-            primary_key: false,
-            description: 'Titre de la formation',
-            example_value: 'Développement Web avec React',
-            slug_compatible: true,
-            acf_field_type: 'text',
-            ui_component: 'input'
-          },
-          {
-            name: 'slug',
-            type_general: 'string',
-            type_sql: 'VARCHAR(255) UNIQUE NOT NULL',
-            required: true,
-            unique: true,
-            primary_key: false,
-            description: 'Slug unique pour URL',
-            example_value: 'developpement-web-react',
-            slug_compatible: true,
-            acf_field_type: 'text',
-            ui_component: 'input',
-            index: 'BTree'
-          },
-          {
-            name: 'description',
-            type_general: 'text',
-            type_sql: 'TEXT',
-            required: false,
-            unique: false,
-            primary_key: false,
-            description: 'Description de la formation',
-            example_value: 'Apprenez à créer des applications web modernes...',
-            slug_compatible: false,
-            acf_field_type: 'wysiwyg',
-            ui_component: 'textarea'
-          },
-          {
-            name: 'level',
-            type_general: 'enum',
-            type_sql: 'VARCHAR(50)',
-            required: true,
-            unique: false,
-            primary_key: false,
-            description: 'Niveau de difficulté',
-            example_value: 'intermediate',
-            slug_compatible: false,
-            acf_field_type: 'select',
-            ui_component: 'select',
-            enum_values: ['beginner', 'intermediate', 'advanced']
-          },
-          {
-            name: 'duration_hours',
-            type_general: 'int',
-            type_sql: 'INTEGER',
-            required: false,
-            unique: false,
-            primary_key: false,
-            description: 'Durée en heures',
-            example_value: '40',
-            slug_compatible: false,
-            acf_field_type: 'number',
-            ui_component: 'input'
-          },
-          {
-            name: 'price',
-            type_general: 'float',
-            type_sql: 'DECIMAL(10,2)',
-            required: false,
-            unique: false,
-            primary_key: false,
-            description: 'Prix de la formation',
-            example_value: '299.00',
-            slug_compatible: false,
-            acf_field_type: 'number',
-            ui_component: 'input'
-          },
-          {
-            name: 'instructor_name',
-            type_general: 'string',
-            type_sql: 'VARCHAR(255)',
-            required: false,
-            unique: false,
-            primary_key: false,
-            description: 'Nom de l\'instructeur',
-            example_value: 'Pierre Durand',
-            slug_compatible: false,
-            acf_field_type: 'text',
-            ui_component: 'input'
-          },
-          {
-            name: 'requirements',
-            type_general: 'json',
-            type_sql: 'JSONB',
-            required: false,
-            unique: false,
-            primary_key: false,
-            description: 'Prérequis de la formation',
-            example_value: '["Bases en HTML/CSS", "Notions de JavaScript"]',
-            slug_compatible: false,
-            acf_field_type: 'repeater',
-            ui_component: 'textarea'
-          },
-          {
-            name: 'syllabus',
-            type_general: 'json',
-            type_sql: 'JSONB',
-            required: false,
-            unique: false,
-            primary_key: false,
-            description: 'Programme détaillé',
-            example_value: '[{"module": "Introduction", "lessons": ["Qu\'est-ce que React", "Configuration"]}]',
-            slug_compatible: false,
-            acf_field_type: 'repeater',
-            ui_component: 'textarea'
-          }
-        ]
-      }
-    ]
-  });
-
-  const createServicesPreset = (): Schema => ({
-    name: 'Annuaire Services',
-    description: 'Structure pour un annuaire de services professionnels',
-    version: '1.0.0',
-    tables: [
-      {
-        id: 'services',
-        name: 'services',
-        description: 'Services proposés',
-        category: 'Services',
-        fields: [
-          {
-            name: 'id',
-            type_general: 'uuid',
-            type_sql: 'UUID PRIMARY KEY DEFAULT uuid_generate_v4()',
-            required: true,
-            unique: true,
-            primary_key: true,
-            description: 'Identifiant unique du service',
-            example_value: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
-            slug_compatible: false,
-            acf_field_type: 'text',
-            ui_component: 'input'
-          },
-          {
-            name: 'name',
-            type_general: 'string',
-            type_sql: 'VARCHAR(255) NOT NULL',
-            required: true,
-            unique: false,
-            primary_key: false,
-            description: 'Nom du service',
-            example_value: 'Développement Web sur Mesure',
-            slug_compatible: true,
-            acf_field_type: 'text',
-            ui_component: 'input'
-          },
-          {
-            name: 'slug',
-            type_general: 'string',
-            type_sql: 'VARCHAR(255) UNIQUE NOT NULL',
-            required: true,
-            unique: true,
-            primary_key: false,
-            description: 'Slug unique pour URL',
-            example_value: 'developpement-web-sur-mesure',
-            slug_compatible: true,
-            acf_field_type: 'text',
-            ui_component: 'input',
-            index: 'BTree'
-          },
-          {
-            name: 'category',
-            type_general: 'enum',
-            type_sql: 'VARCHAR(100)',
-            required: true,
-            unique: false,
-            primary_key: false,
-            description: 'Catégorie de service',
-            example_value: 'web_development',
-            slug_compatible: false,
-            acf_field_type: 'select',
-            ui_component: 'select',
-            enum_values: ['web_development', 'graphic_design', 'marketing', 'consulting', 'photography', 'writing']
-          },
-          {
-            name: 'description',
-            type_general: 'text',
-            type_sql: 'TEXT',
-            required: false,
-            unique: false,
-            primary_key: false,
-            description: 'Description du service',
-            example_value: 'Création de sites web professionnels et applications...',
-            slug_compatible: false,
-            acf_field_type: 'wysiwyg',
-            ui_component: 'textarea'
-          },
-          {
-            name: 'price_range',
-            type_general: 'string',
-            type_sql: 'VARCHAR(100)',
-            required: false,
-            unique: false,
-            primary_key: false,
-            description: 'Fourchette de prix',
-            example_value: '500€ - 5000€',
-            slug_compatible: false,
-            acf_field_type: 'text',
-            ui_component: 'input'
-          },
-          {
-            name: 'provider_name',
-            type_general: 'string',
-            type_sql: 'VARCHAR(255) NOT NULL',
-            required: true,
-            unique: false,
-            primary_key: false,
-            description: 'Nom du prestataire',
-            example_value: 'TechSolutions SARL',
-            slug_compatible: false,
-            acf_field_type: 'text',
-            ui_component: 'input'
-          },
-          {
-            name: 'provider_email',
-            type_general: 'string',
-            type_sql: 'VARCHAR(255)',
-            required: false,
-            unique: false,
-            primary_key: false,
-            description: 'Email du prestataire',
-            example_value: 'contact@techsolutions.fr',
-            slug_compatible: false,
-            acf_field_type: 'email',
-            ui_component: 'input'
-          },
-          {
-            name: 'provider_phone',
-            type_general: 'string',
-            type_sql: 'VARCHAR(20)',
-            required: false,
-            unique: false,
-            primary_key: false,
-            description: 'Téléphone du prestataire',
-            example_value: '+33 1 23 45 67 89',
-            slug_compatible: false,
-            acf_field_type: 'text',
-            ui_component: 'input'
-          },
-          {
-            name: 'location',
-            type_general: 'json',
-            type_sql: 'JSONB',
-            required: false,
-            unique: false,
-            primary_key: false,
-            description: 'Localisation géographique',
-            example_value: '{"city": "Paris", "region": "Île-de-France", "country": "France"}',
-            slug_compatible: false,
-            acf_field_type: 'group',
-            ui_component: 'textarea'
-          }
-        ]
-      }
-    ]
-  });
-
-  const createBusinessDirectoryPreset = (): Schema => ({
-    name: 'Annuaire Professionnels',
-    description: 'Annuaire complet de professionnels et entreprises',
-    version: '1.0.0',
-    tables: [
-      {
-        id: 'businesses',
-        name: 'businesses',
-        description: 'Entreprises et professionnels',
-        category: 'Directory',
-        fields: [
-          {
-            name: 'id',
-            type_general: 'uuid',
-            type_sql: 'UUID PRIMARY KEY DEFAULT uuid_generate_v4()',
-            required: true,
-            unique: true,
-            primary_key: true,
-            description: 'Identifiant unique de l\'entreprise',
-            example_value: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
-            slug_compatible: false,
-            acf_field_type: 'text',
-            ui_component: 'input'
-          },
-          {
-            name: 'name',
-            type_general: 'string',
-            type_sql: 'VARCHAR(255) NOT NULL',
-            required: true,
-            unique: false,
-            primary_key: false,
-            description: 'Nom de l\'entreprise',
-            example_value: 'Boulangerie Martin',
-            slug_compatible: true,
-            acf_field_type: 'text',
-            ui_component: 'input'
-          },
-          {
-            name: 'slug',
-            type_general: 'string',
-            type_sql: 'VARCHAR(255) UNIQUE NOT NULL',
-            required: true,
-            unique: true,
-            primary_key: false,
-            description: 'Slug unique pour URL',
-            example_value: 'boulangerie-martin',
-            slug_compatible: true,
-            acf_field_type: 'text',
-            ui_component: 'input',
-            index: 'BTree'
-          },
-          {
-            name: 'industry',
-            type_general: 'enum',
-            type_sql: 'VARCHAR(100)',
-            required: true,
-            unique: false,
-            primary_key: false,
-            description: 'Secteur d\'activité',
-            example_value: 'food_beverage',
-            slug_compatible: false,
-            acf_field_type: 'select',
-            ui_component: 'select',
-            enum_values: ['food_beverage', 'health_medical', 'retail', 'services', 'technology', 'construction', 'education', 'automotive']
-          },
-          {
-            name: 'description',
-            type_general: 'text',
-            type_sql: 'TEXT',
-            required: false,
-            unique: false,
-            primary_key: false,
-            description: 'Description de l\'entreprise',
-            example_value: 'Boulangerie artisanale depuis 1995, spécialités maison...',
-            slug_compatible: false,
-            acf_field_type: 'wysiwyg',
-            ui_component: 'textarea'
-          },
-          {
-            name: 'siret',
-            type_general: 'string',
-            type_sql: 'VARCHAR(20)',
-            required: false,
-            unique: true,
-            primary_key: false,
-            description: 'Numéro SIRET',
-            example_value: '12345678901234',
-            slug_compatible: false,
-            acf_field_type: 'text',
-            ui_component: 'input'
-          },
-          {
-            name: 'address',
-            type_general: 'json',
-            type_sql: 'JSONB NOT NULL',
-            required: true,
-            unique: false,
-            primary_key: false,
-            description: 'Adresse complète',
-            example_value: '{"street": "15 rue de la République", "city": "Lyon", "postal_code": "69001", "country": "France"}',
-            slug_compatible: false,
-            acf_field_type: 'group',
-            ui_component: 'textarea'
-          },
-          {
-            name: 'contact',
-            type_general: 'json',
-            type_sql: 'JSONB',
-            required: false,
-            unique: false,
-            primary_key: false,
-            description: 'Informations de contact',
-            example_value: '{"phone": "+33 4 12 34 56 78", "email": "contact@boulangerie-martin.fr", "website": "https://boulangerie-martin.fr"}',
-            slug_compatible: false,
-            acf_field_type: 'group',
-            ui_component: 'textarea'
-          },
-          {
-            name: 'opening_hours',
-            type_general: 'json',
-            type_sql: 'JSONB',
-            required: false,
-            unique: false,
-            primary_key: false,
-            description: 'Horaires d\'ouverture',
-            example_value: '{"monday": "7:00-19:00", "tuesday": "7:00-19:00", "sunday": "7:00-13:00"}',
-            slug_compatible: false,
-            acf_field_type: 'repeater',
-            ui_component: 'textarea'
-          },
-          {
-            name: 'rating',
-            type_general: 'float',
-            type_sql: 'DECIMAL(3,2)',
-            required: false,
-            unique: false,
-            primary_key: false,
-            description: 'Note moyenne (sur 5)',
-            example_value: '4.8',
-            slug_compatible: false,
-            acf_field_type: 'range',
-            ui_component: 'input'
-          }
-        ]
-      }
-    ]
-  });
-
-  const createPlacesDirectoryPreset = (): Schema => ({
-    name: 'Annuaire de Lieux',
-    description: 'Annuaire géolocalisé de lieux et points d\'intérêt',
-    version: '1.0.0',
-    tables: [
-      {
-        id: 'places',
-        name: 'places',
-        description: 'Lieux et points d\'intérêt',
-        category: 'Geography',
-        fields: [
-          {
-            name: 'id',
-            type_general: 'uuid',
-            type_sql: 'UUID PRIMARY KEY DEFAULT uuid_generate_v4()',
-            required: true,
-            unique: true,
-            primary_key: true,
-            description: 'Identifiant unique du lieu',
-            example_value: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
-            slug_compatible: false,
-            acf_field_type: 'text',
-            ui_component: 'input'
-          },
-          {
-            name: 'name',
-            type_general: 'string',
-            type_sql: 'VARCHAR(255) NOT NULL',
-            required: true,
-            unique: false,
-            primary_key: false,
-            description: 'Nom du lieu',
-            example_value: 'Tour Eiffel',
-            slug_compatible: true,
-            acf_field_type: 'text',
-            ui_component: 'input'
-          },
-          {
-            name: 'slug',
-            type_general: 'string',
-            type_sql: 'VARCHAR(255) UNIQUE NOT NULL',
-            required: true,
-            unique: true,
-            primary_key: false,
-            description: 'Slug unique pour URL',
-            example_value: 'tour-eiffel',
-            slug_compatible: true,
-            acf_field_type: 'text',
-            ui_component: 'input',
-            index: 'BTree'
-          },
-          {
-            name: 'category',
-            type_general: 'enum',
-            type_sql: 'VARCHAR(100)',
-            required: true,
-            unique: false,
-            primary_key: false,
-            description: 'Type de lieu',
-            example_value: 'monument',
-            slug_compatible: false,
-            acf_field_type: 'select',
-            ui_component: 'select',
-            enum_values: ['monument', 'museum', 'park', 'restaurant', 'hotel', 'shop', 'transport', 'entertainment']
-          },
-          {
-            name: 'description',
-            type_general: 'text',
-            type_sql: 'TEXT',
-            required: false,
-            unique: false,
-            primary_key: false,
-            description: 'Description du lieu',
-            example_value: 'Monument emblématique de Paris, construite en 1889...',
-            slug_compatible: false,
-            acf_field_type: 'wysiwyg',
-            ui_component: 'textarea'
-          },
-          {
-            name: 'address',
-            type_general: 'json',
-            type_sql: 'JSONB NOT NULL',
-            required: true,
-            unique: false,
-            primary_key: false,
-            description: 'Adresse complète',
-            example_value: '{"street": "Champ de Mars", "city": "Paris", "postal_code": "75007", "country": "France"}',
-            slug_compatible: false,
-            acf_field_type: 'group',
-            ui_component: 'textarea'
-          },
-          {
-            name: 'coordinates',
-            type_general: 'json',
-            type_sql: 'JSONB',
-            required: false,
-            unique: false,
-            primary_key: false,
-            description: 'Coordonnées GPS',
-            example_value: '{"latitude": 48.8584, "longitude": 2.2945}',
-            slug_compatible: false,
-            acf_field_type: 'group',
-            ui_component: 'textarea'
-          },
-          {
-            name: 'accessibility',
-            type_general: 'json',
-            type_sql: 'JSONB',
-            required: false,
-            unique: false,
-            primary_key: false,
-            description: 'Informations d\'accessibilité',
-            example_value: '{"wheelchair": true, "elevator": true, "parking": false}',
-            slug_compatible: false,
-            acf_field_type: 'group',
-            ui_component: 'textarea'
-          },
-          {
-            name: 'images',
-            type_general: 'json',
-            type_sql: 'JSONB',
-            required: false,
-            unique: false,
-            primary_key: false,
-            description: 'Photos du lieu',
-            example_value: '["https://example.com/eiffel1.jpg", "https://example.com/eiffel2.jpg"]',
-            slug_compatible: false,
-            acf_field_type: 'gallery',
-            ui_component: 'image-picker'
-          },
-          {
-            name: 'website',
-            type_general: 'string',
-            type_sql: 'VARCHAR(500)',
-            required: false,
-            unique: false,
-            primary_key: false,
-            description: 'Site web officiel',
-            example_value: 'https://www.toureiffel.paris',
-            slug_compatible: false,
-            acf_field_type: 'url',
-            ui_component: 'input'
-          }
-        ]
-      }
-    ]
-  });
-
-  const presets = [
+  const presets: Schema[] = [
     {
-      id: 'blog',
-      title: 'Blog',
-      description: 'Articles, auteurs, catégories, commentaires',
-      icon: BookOpen,
-      schema: createBlogPreset,
-      tags: ['Content', 'CMS']
+      name: "Blog Personnel",
+      description: "Structure complète pour un blog avec articles, catégories et commentaires",
+      version: "1.0.0",
+      tables: [
+        {
+          id: crypto.randomUUID(),
+          name: "articles",
+          description: "Articles de blog avec contenu riche",
+          category: "Contenu",
+          fields: [
+            {
+              name: "id",
+              type_general: "uuid",
+              type_sql: "UUID PRIMARY KEY DEFAULT gen_random_uuid()",
+              required: true,
+              unique: true,
+              primary_key: true,
+              description: "Identifiant unique de l'article",
+              example_value: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+              slug_compatible: false,
+              acf_field_type: "text",
+              ui_component: "input"
+            },
+            {
+              name: "title",
+              type_general: "string",
+              type_sql: "VARCHAR(255) NOT NULL",
+              required: true,
+              unique: false,
+              primary_key: false,
+              description: "Titre de l'article",
+              example_value: "Mon premier article de blog",
+              slug_compatible: true,
+              acf_field_type: "text",
+              ui_component: "input"
+            },
+            {
+              name: "slug",
+              type_general: "string",
+              type_sql: "VARCHAR(255) UNIQUE NOT NULL",
+              required: true,
+              unique: true,
+              primary_key: false,
+              description: "URL conviviale de l'article",
+              example_value: "mon-premier-article-de-blog",
+              slug_compatible: true,
+              acf_field_type: "text",
+              ui_component: "input"
+            },
+            {
+              name: "content",
+              type_general: "text",
+              type_sql: "TEXT",
+              required: false,
+              unique: false,
+              primary_key: false,
+              description: "Contenu principal de l'article en markdown",
+              example_value: "# Introduction\n\nCeci est mon premier article...",
+              slug_compatible: false,
+              acf_field_type: "wysiwyg",
+              ui_component: "textarea"
+            },
+            {
+              name: "excerpt",
+              type_general: "text",
+              type_sql: "TEXT",
+              required: false,
+              unique: false,
+              primary_key: false,
+              description: "Résumé court de l'article",
+              example_value: "Découvrez comment j'ai commencé mon blog...",
+              slug_compatible: false,
+              acf_field_type: "textarea",
+              ui_component: "textarea"
+            },
+            {
+              name: "featured_image",
+              type_general: "image",
+              type_sql: "VARCHAR(500)",
+              required: false,
+              unique: false,
+              primary_key: false,
+              description: "Image principale de l'article",
+              example_value: "/images/articles/premier-article.jpg",
+              slug_compatible: false,
+              acf_field_type: "image",
+              ui_component: "image-picker"
+            },
+            {
+              name: "category_id",
+              type_general: "relation",
+              type_sql: "UUID REFERENCES categories(id)",
+              required: false,
+              unique: false,
+              primary_key: false,
+              foreign_key: "categories(id)",
+              relation_cardinality: "N-1",
+              description: "Catégorie de l'article",
+              example_value: "tech-web",
+              slug_compatible: false,
+              acf_field_type: "select",
+              ui_component: "relation-picker"
+            },
+            {
+              name: "published",
+              type_general: "bool",
+              type_sql: "BOOLEAN DEFAULT FALSE",
+              required: false,
+              unique: false,
+              primary_key: false,
+              default_sql: "FALSE",
+              description: "Article publié ou brouillon",
+              example_value: "true",
+              slug_compatible: false,
+              acf_field_type: "true_false",
+              ui_component: "toggle"
+            },
+            {
+              name: "published_at",
+              type_general: "datetime",
+              type_sql: "TIMESTAMP WITH TIME ZONE",
+              required: false,
+              unique: false,
+              primary_key: false,
+              description: "Date de publication",
+              example_value: "2024-01-15T10:30:00Z",
+              slug_compatible: false,
+              acf_field_type: "date_time_picker",
+              ui_component: "datepicker"
+            },
+            {
+              name: "created_at",
+              type_general: "datetime",
+              type_sql: "TIMESTAMP WITH TIME ZONE DEFAULT NOW()",
+              required: true,
+              unique: false,
+              primary_key: false,
+              default_sql: "NOW()",
+              description: "Date de création",
+              example_value: "2024-01-15T10:30:00Z",
+              slug_compatible: false,
+              acf_field_type: "date_time_picker",
+              ui_component: "datepicker"
+            },
+            {
+              name: "updated_at",
+              type_general: "datetime",
+              type_sql: "TIMESTAMP WITH TIME ZONE DEFAULT NOW()",
+              required: true,
+              unique: false,
+              primary_key: false,
+              default_sql: "NOW()",
+              description: "Date de dernière modification",
+              example_value: "2024-01-15T10:30:00Z",
+              slug_compatible: false,
+              acf_field_type: "date_time_picker",
+              ui_component: "datepicker"
+            }
+          ]
+        },
+        {
+          id: crypto.randomUUID(),
+          name: "categories",
+          description: "Catégories pour organiser les articles",
+          category: "Classification",
+          fields: [
+            {
+              name: "id",
+              type_general: "uuid",
+              type_sql: "UUID PRIMARY KEY DEFAULT gen_random_uuid()",
+              required: true,
+              unique: true,
+              primary_key: true,
+              description: "Identifiant unique de la catégorie",
+              example_value: "cat-tech-web",
+              slug_compatible: false,
+              acf_field_type: "text",
+              ui_component: "input"
+            },
+            {
+              name: "name",
+              type_general: "string",
+              type_sql: "VARCHAR(100) NOT NULL",
+              required: true,
+              unique: false,
+              primary_key: false,
+              description: "Nom de la catégorie",
+              example_value: "Technologies Web",
+              slug_compatible: true,
+              acf_field_type: "text",
+              ui_component: "input"
+            },
+            {
+              name: "slug",
+              type_general: "string",
+              type_sql: "VARCHAR(100) UNIQUE NOT NULL",
+              required: true,
+              unique: true,
+              primary_key: false,
+              description: "Slug URL de la catégorie",
+              example_value: "technologies-web",
+              slug_compatible: true,
+              acf_field_type: "text",
+              ui_component: "input"
+            },
+            {
+              name: "description",
+              type_general: "text",
+              type_sql: "TEXT",
+              required: false,
+              unique: false,
+              primary_key: false,
+              description: "Description de la catégorie",
+              example_value: "Articles sur les dernières technologies web",
+              slug_compatible: false,
+              acf_field_type: "textarea",
+              ui_component: "textarea"
+            },
+            {
+              name: "color",
+              type_general: "string",
+              type_sql: "VARCHAR(7) DEFAULT '#3B82F6'",
+              required: false,
+              unique: false,
+              primary_key: false,
+              default_sql: "'#3B82F6'",
+              description: "Couleur hexadécimale de la catégorie",
+              example_value: "#3B82F6",
+              slug_compatible: false,
+              acf_field_type: "color_picker",
+              ui_component: "input"
+            }
+          ]
+        }
+      ]
     },
     {
-      id: 'ecommerce',
-      title: 'Boutique E-commerce',
-      description: 'Produits, clients, commandes, inventaire',
-      icon: ShoppingCart,
-      schema: createEcommercePreset,
-      tags: ['E-commerce', 'Vente']
+      name: "E-commerce",
+      description: "Boutique en ligne avec produits, commandes et clients",
+      version: "1.0.0",
+      tables: [
+        {
+          id: crypto.randomUUID(),
+          name: "products",
+          description: "Catalogue de produits",
+          category: "Commerce",
+          fields: [
+            {
+              name: "id",
+              type_general: "uuid",
+              type_sql: "UUID PRIMARY KEY DEFAULT gen_random_uuid()",
+              required: true,
+              unique: true,
+              primary_key: true,
+              description: "Identifiant unique du produit",
+              example_value: "prod-12345",
+              slug_compatible: false,
+              acf_field_type: "text",
+              ui_component: "input"
+            },
+            {
+              name: "name",
+              type_general: "string",
+              type_sql: "VARCHAR(255) NOT NULL",
+              required: true,
+              unique: false,
+              primary_key: false,
+              description: "Nom du produit",
+              example_value: "T-shirt Bio Coton",
+              slug_compatible: true,
+              acf_field_type: "text",
+              ui_component: "input"
+            },
+            {
+              name: "slug",
+              type_general: "string",
+              type_sql: "VARCHAR(255) UNIQUE NOT NULL",
+              required: true,
+              unique: true,
+              primary_key: false,
+              description: "URL du produit",
+              example_value: "t-shirt-bio-coton",
+              slug_compatible: true,
+              acf_field_type: "text",
+              ui_component: "input"
+            },
+            {
+              name: "description",
+              type_general: "text",
+              type_sql: "TEXT",
+              required: false,
+              unique: false,
+              primary_key: false,
+              description: "Description détaillée du produit",
+              example_value: "T-shirt en coton bio, confortable et durable...",
+              slug_compatible: false,
+              acf_field_type: "wysiwyg",
+              ui_component: "textarea"
+            },
+            {
+              name: "price",
+              type_general: "float",
+              type_sql: "DECIMAL(10,2) NOT NULL",
+              required: true,
+              unique: false,
+              primary_key: false,
+              description: "Prix en euros",
+              example_value: "29.99",
+              slug_compatible: false,
+              acf_field_type: "number",
+              ui_component: "input"
+            },
+            {
+              name: "stock",
+              type_general: "int",
+              type_sql: "INTEGER DEFAULT 0",
+              required: false,
+              unique: false,
+              primary_key: false,
+              default_sql: "0",
+              description: "Quantité en stock",
+              example_value: "150",
+              slug_compatible: false,
+              acf_field_type: "number",
+              ui_component: "input"
+            },
+            {
+              name: "featured_image",
+              type_general: "image",
+              type_sql: "VARCHAR(500)",
+              required: false,
+              unique: false,
+              primary_key: false,
+              description: "Image principale du produit",
+              example_value: "/images/products/t-shirt-bio.jpg",
+              slug_compatible: false,
+              acf_field_type: "image",
+              ui_component: "image-picker"
+            },
+            {
+              name: "gallery",
+              type_general: "json",
+              type_sql: "JSONB",
+              required: false,
+              unique: false,
+              primary_key: false,
+              description: "Galerie d'images du produit",
+              example_value: '["img1.jpg", "img2.jpg", "img3.jpg"]',
+              slug_compatible: false,
+              acf_field_type: "gallery",
+              ui_component: "image-picker"
+            },
+            {
+              name: "category_id",
+              type_general: "relation",
+              type_sql: "UUID REFERENCES product_categories(id)",
+              required: false,
+              unique: false,
+              primary_key: false,
+              foreign_key: "product_categories(id)",
+              relation_cardinality: "N-1",
+              description: "Catégorie du produit",
+              example_value: "vetements",
+              slug_compatible: false,
+              acf_field_type: "select",
+              ui_component: "relation-picker"
+            },
+            {
+              name: "active",
+              type_general: "bool",
+              type_sql: "BOOLEAN DEFAULT TRUE",
+              required: false,
+              unique: false,
+              primary_key: false,
+              default_sql: "TRUE",
+              description: "Produit actif/visible",
+              example_value: "true",
+              slug_compatible: false,
+              acf_field_type: "true_false",
+              ui_component: "toggle"
+            }
+          ]
+        }
+      ]
     },
     {
-      id: 'training',
-      title: 'Formations',
-      description: 'Cours, modules, étudiants, certifications',
-      icon: GraduationCap,
-      schema: createTrainingPreset,
-      tags: ['Education', 'LMS']
+      name: "Plateforme de Formation",
+      description: "Cours en ligne avec modules, leçons et étudiants",
+      version: "1.0.0",
+      tables: [
+        {
+          id: crypto.randomUUID(),
+          name: "courses",
+          description: "Cours de formation en ligne",
+          category: "Éducation",
+          fields: [
+            {
+              name: "id",
+              type_general: "uuid",
+              type_sql: "UUID PRIMARY KEY DEFAULT gen_random_uuid()",
+              required: true,
+              unique: true,
+              primary_key: true,
+              description: "Identifiant unique du cours",
+              example_value: "course-javascript-avance",
+              slug_compatible: false,
+              acf_field_type: "text",
+              ui_component: "input"
+            },
+            {
+              name: "title",
+              type_general: "string",
+              type_sql: "VARCHAR(255) NOT NULL",
+              required: true,
+              unique: false,
+              primary_key: false,
+              description: "Titre du cours",
+              example_value: "JavaScript Avancé",
+              slug_compatible: true,
+              acf_field_type: "text",
+              ui_component: "input"
+            },
+            {
+              name: "slug",
+              type_general: "string",
+              type_sql: "VARCHAR(255) UNIQUE NOT NULL",
+              required: true,
+              unique: true,
+              primary_key: false,
+              description: "URL du cours",
+              example_value: "javascript-avance",
+              slug_compatible: true,
+              acf_field_type: "text",
+              ui_component: "input"
+            },
+            {
+              name: "description",
+              type_general: "text",
+              type_sql: "TEXT",
+              required: false,
+              unique: false,
+              primary_key: false,
+              description: "Description du cours",
+              example_value: "Apprenez les concepts avancés de JavaScript...",
+              slug_compatible: false,
+              acf_field_type: "wysiwyg",
+              ui_component: "textarea"
+            },
+            {
+              name: "level",
+              type_general: "enum",
+              type_sql: "VARCHAR(20) CHECK (level IN ('debutant', 'intermediaire', 'avance'))",
+              enum_values: ["debutant", "intermediaire", "avance"],
+              required: true,
+              unique: false,
+              primary_key: false,
+              description: "Niveau de difficulté",
+              example_value: "avance",
+              slug_compatible: false,
+              acf_field_type: "select",
+              ui_component: "select"
+            },
+            {
+              name: "duration_hours",
+              type_general: "int",
+              type_sql: "INTEGER",
+              required: false,
+              unique: false,
+              primary_key: false,
+              description: "Durée en heures",
+              example_value: "40",
+              slug_compatible: false,
+              acf_field_type: "number",
+              ui_component: "input"
+            },
+            {
+              name: "price",
+              type_general: "float",
+              type_sql: "DECIMAL(10,2)",
+              required: false,
+              unique: false,
+              primary_key: false,
+              description: "Prix du cours en euros",
+              example_value: "299.00",
+              slug_compatible: false,
+              acf_field_type: "number",
+              ui_component: "input"
+            },
+            {
+              name: "thumbnail",
+              type_general: "image",
+              type_sql: "VARCHAR(500)",
+              required: false,
+              unique: false,
+              primary_key: false,
+              description: "Image de couverture du cours",
+              example_value: "/images/courses/js-avance.jpg",
+              slug_compatible: false,
+              acf_field_type: "image",
+              ui_component: "image-picker"
+            },
+            {
+              name: "published",
+              type_general: "bool",
+              type_sql: "BOOLEAN DEFAULT FALSE",
+              required: false,
+              unique: false,
+              primary_key: false,
+              default_sql: "FALSE",
+              description: "Cours publié",
+              example_value: "true",
+              slug_compatible: false,
+              acf_field_type: "true_false",
+              ui_component: "toggle"
+            }
+          ]
+        }
+      ]
     },
     {
-      id: 'services',
-      title: 'Services',
-      description: 'Prestataires, services, tarifs, réservations',
-      icon: Briefcase,
-      schema: createServicesPreset,
-      tags: ['Services', 'B2B']
+      name: "Services Professionnels",
+      description: "Site vitrine pour services avec témoignages et portfolio",
+      version: "1.0.0",
+      tables: [
+        {
+          id: crypto.randomUUID(),
+          name: "services",
+          description: "Services proposés par l'entreprise",
+          category: "Business",
+          fields: [
+            {
+              name: "id",
+              type_general: "uuid",
+              type_sql: "UUID PRIMARY KEY DEFAULT gen_random_uuid()",
+              required: true,
+              unique: true,
+              primary_key: true,
+              description: "Identifiant unique du service",
+              example_value: "service-dev-web",
+              slug_compatible: false,
+              acf_field_type: "text",
+              ui_component: "input"
+            },
+            {
+              name: "name",
+              type_general: "string",
+              type_sql: "VARCHAR(255) NOT NULL",
+              required: true,
+              unique: false,
+              primary_key: false,
+              description: "Nom du service",
+              example_value: "Développement Web",
+              slug_compatible: true,
+              acf_field_type: "text",
+              ui_component: "input"
+            },
+            {
+              name: "slug",
+              type_general: "string",
+              type_sql: "VARCHAR(255) UNIQUE NOT NULL",
+              required: true,
+              unique: true,
+              primary_key: false,
+              description: "URL du service",
+              example_value: "developpement-web",
+              slug_compatible: true,
+              acf_field_type: "text",
+              ui_component: "input"
+            },
+            {
+              name: "description",
+              type_general: "text",
+              type_sql: "TEXT",
+              required: false,
+              unique: false,
+              primary_key: false,
+              description: "Description détaillée du service",
+              example_value: "Création de sites web modernes et performants...",
+              slug_compatible: false,
+              acf_field_type: "wysiwyg",
+              ui_component: "textarea"
+            },
+            {
+              name: "price_from",
+              type_general: "float",
+              type_sql: "DECIMAL(10,2)",
+              required: false,
+              unique: false,
+              primary_key: false,
+              description: "Prix de départ",
+              example_value: "1500.00",
+              slug_compatible: false,
+              acf_field_type: "number",
+              ui_component: "input"
+            },
+            {
+              name: "duration_estimate",
+              type_general: "string",
+              type_sql: "VARCHAR(100)",
+              required: false,
+              unique: false,
+              primary_key: false,
+              description: "Durée estimée",
+              example_value: "2-4 semaines",
+              slug_compatible: false,
+              acf_field_type: "text",
+              ui_component: "input"
+            },
+            {
+              name: "icon",
+              type_general: "string",
+              type_sql: "VARCHAR(100)",
+              required: false,
+              unique: false,
+              primary_key: false,
+              description: "Nom de l'icône",
+              example_value: "code",
+              slug_compatible: false,
+              acf_field_type: "text",
+              ui_component: "input"
+            },
+            {
+              name: "featured",
+              type_general: "bool",
+              type_sql: "BOOLEAN DEFAULT FALSE",
+              required: false,
+              unique: false,
+              primary_key: false,
+              default_sql: "FALSE",
+              description: "Service mis en avant",
+              example_value: "true",
+              slug_compatible: false,
+              acf_field_type: "true_false",
+              ui_component: "toggle"
+            }
+          ]
+        }
+      ]
     },
     {
-      id: 'business-directory',
-      title: 'Annuaire Pros',
-      description: 'Entreprises, secteurs, contacts, horaires',
-      icon: Users,
-      schema: createBusinessDirectoryPreset,
-      tags: ['Annuaire', 'Business']
+      name: "Annuaire Professionnel",
+      description: "Répertoire d'entreprises et professionnels",
+      version: "1.0.0",
+      tables: [
+        {
+          id: crypto.randomUUID(),
+          name: "businesses",
+          description: "Entreprises et professionnels référencés",
+          category: "Annuaire",
+          fields: [
+            {
+              name: "id",
+              type_general: "uuid",
+              type_sql: "UUID PRIMARY KEY DEFAULT gen_random_uuid()",
+              required: true,
+              unique: true,
+              primary_key: true,
+              description: "Identifiant unique de l'entreprise",
+              example_value: "biz-restaurant-paris",
+              slug_compatible: false,
+              acf_field_type: "text",
+              ui_component: "input"
+            },
+            {
+              name: "name",
+              type_general: "string",
+              type_sql: "VARCHAR(255) NOT NULL",
+              required: true,
+              unique: false,
+              primary_key: false,
+              description: "Nom de l'entreprise",
+              example_value: "Restaurant Le Gourmet",
+              slug_compatible: true,
+              acf_field_type: "text",
+              ui_component: "input"
+            },
+            {
+              name: "slug",
+              type_general: "string",
+              type_sql: "VARCHAR(255) UNIQUE NOT NULL",
+              required: true,
+              unique: true,
+              primary_key: false,
+              description: "URL de l'entreprise",
+              example_value: "restaurant-le-gourmet",
+              slug_compatible: true,
+              acf_field_type: "text",
+              ui_component: "input"
+            },
+            {
+              name: "description",
+              type_general: "text",
+              type_sql: "TEXT",
+              required: false,
+              unique: false,
+              primary_key: false,
+              description: "Description de l'entreprise",
+              example_value: "Restaurant gastronomique au cœur de Paris...",
+              slug_compatible: false,
+              acf_field_type: "wysiwyg",
+              ui_component: "textarea"
+            },
+            {
+              name: "address",
+              type_general: "text",
+              type_sql: "TEXT",
+              required: false,
+              unique: false,
+              primary_key: false,
+              description: "Adresse complète",
+              example_value: "123 Rue de la Paix, 75001 Paris",
+              slug_compatible: false,
+              acf_field_type: "textarea",
+              ui_component: "textarea"
+            },
+            {
+              name: "phone",
+              type_general: "string",
+              type_sql: "VARCHAR(20)",
+              required: false,
+              unique: false,
+              primary_key: false,
+              description: "Numéro de téléphone",
+              example_value: "01 42 33 44 55",
+              slug_compatible: false,
+              acf_field_type: "text",
+              ui_component: "input"
+            },
+            {
+              name: "email",
+              type_general: "string",
+              type_sql: "VARCHAR(255)",
+              required: false,
+              unique: false,
+              primary_key: false,
+              description: "Adresse email",
+              example_value: "contact@legourmet.fr",
+              slug_compatible: false,
+              acf_field_type: "email",
+              ui_component: "input"
+            },
+            {
+              name: "website",
+              type_general: "string",
+              type_sql: "VARCHAR(500)",
+              required: false,
+              unique: false,
+              primary_key: false,
+              description: "Site web",
+              example_value: "https://www.legourmet.fr",
+              slug_compatible: false,
+              acf_field_type: "url",
+              ui_component: "input"
+            },
+            {
+              name: "category_id",
+              type_general: "relation",
+              type_sql: "UUID REFERENCES business_categories(id)",
+              required: false,
+              unique: false,
+              primary_key: false,
+              foreign_key: "business_categories(id)",
+              relation_cardinality: "N-1",
+              description: "Catégorie d'activité",
+              example_value: "restaurants",
+              slug_compatible: false,
+              acf_field_type: "select",
+              ui_component: "relation-picker"
+            },
+            {
+              name: "logo",
+              type_general: "image",
+              type_sql: "VARCHAR(500)",
+              required: false,
+              unique: false,
+              primary_key: false,
+              description: "Logo de l'entreprise",
+              example_value: "/images/logos/legourmet.jpg",
+              slug_compatible: false,
+              acf_field_type: "image",
+              ui_component: "image-picker"
+            },
+            {
+              name: "verified",
+              type_general: "bool",
+              type_sql: "BOOLEAN DEFAULT FALSE",
+              required: false,
+              unique: false,
+              primary_key: false,
+              default_sql: "FALSE",
+              description: "Entreprise vérifiée",
+              example_value: "true",
+              slug_compatible: false,
+              acf_field_type: "true_false",
+              ui_component: "toggle"
+            }
+          ]
+        }
+      ]
     },
     {
-      id: 'places',
-      title: 'Annuaire de Lieux',
-      description: 'POI, géolocalisation, catégories, photos',
-      icon: MapPin,
-      schema: createPlacesDirectoryPreset,
-      tags: ['Géographie', 'Tourisme']
+      name: "Annuaire de Lieux",
+      description: "Guide touristique avec lieux d'intérêt et avis",
+      version: "1.0.0",
+      tables: [
+        {
+          id: crypto.randomUUID(),
+          name: "places",
+          description: "Lieux d'intérêt touristique",
+          category: "Tourisme",
+          fields: [
+            {
+              name: "id",
+              type_general: "uuid",
+              type_sql: "UUID PRIMARY KEY DEFAULT gen_random_uuid()",
+              required: true,
+              unique: true,
+              primary_key: true,
+              description: "Identifiant unique du lieu",
+              example_value: "place-tour-eiffel",
+              slug_compatible: false,
+              acf_field_type: "text",
+              ui_component: "input"
+            },
+            {
+              name: "name",
+              type_general: "string",
+              type_sql: "VARCHAR(255) NOT NULL",
+              required: true,
+              unique: false,
+              primary_key: false,
+              description: "Nom du lieu",
+              example_value: "Tour Eiffel",
+              slug_compatible: true,
+              acf_field_type: "text",
+              ui_component: "input"
+            },
+            {
+              name: "slug",
+              type_general: "string",
+              type_sql: "VARCHAR(255) UNIQUE NOT NULL",
+              required: true,
+              unique: true,
+              primary_key: false,
+              description: "URL du lieu",
+              example_value: "tour-eiffel",
+              slug_compatible: true,
+              acf_field_type: "text",
+              ui_component: "input"
+            },
+            {
+              name: "description",
+              type_general: "text",
+              type_sql: "TEXT",
+              required: false,
+              unique: false,
+              primary_key: false,
+              description: "Description du lieu",
+              example_value: "Monument emblématique de Paris, symbole de la France...",
+              slug_compatible: false,
+              acf_field_type: "wysiwyg",
+              ui_component: "textarea"
+            },
+            {
+              name: "address",
+              type_general: "text",
+              type_sql: "TEXT",
+              required: false,
+              unique: false,
+              primary_key: false,
+              description: "Adresse du lieu",
+              example_value: "Champ de Mars, 5 Avenue Anatole France, 75007 Paris",
+              slug_compatible: false,
+              acf_field_type: "textarea",
+              ui_component: "textarea"
+            },
+            {
+              name: "latitude",
+              type_general: "float",
+              type_sql: "DECIMAL(10,8)",
+              required: false,
+              unique: false,
+              primary_key: false,
+              description: "Latitude GPS",
+              example_value: "48.8584",
+              slug_compatible: false,
+              acf_field_type: "number",
+              ui_component: "input"
+            },
+            {
+              name: "longitude",
+              type_general: "float",
+              type_sql: "DECIMAL(11,8)",
+              required: false,
+              unique: false,
+              primary_key: false,
+              description: "Longitude GPS",
+              example_value: "2.2945",
+              slug_compatible: false,
+              acf_field_type: "number",
+              ui_component: "input"
+            },
+            {
+              name: "type",
+              type_general: "enum",
+              type_sql: "VARCHAR(50) CHECK (type IN ('monument', 'musee', 'parc', 'restaurant', 'hotel', 'autre'))",
+              enum_values: ["monument", "musee", "parc", "restaurant", "hotel", "autre"],
+              required: true,
+              unique: false,
+              primary_key: false,
+              description: "Type de lieu",
+              example_value: "monument",
+              slug_compatible: false,
+              acf_field_type: "select",
+              ui_component: "select"
+            },
+            {
+              name: "featured_image",
+              type_general: "image",
+              type_sql: "VARCHAR(500)",
+              required: false,
+              unique: false,
+              primary_key: false,
+              description: "Image principale du lieu",
+              example_value: "/images/places/tour-eiffel.jpg",
+              slug_compatible: false,
+              acf_field_type: "image",
+              ui_component: "image-picker"
+            },
+            {
+              name: "gallery",
+              type_general: "json",
+              type_sql: "JSONB",
+              required: false,
+              unique: false,
+              primary_key: false,
+              description: "Galerie photos du lieu",
+              example_value: '["eiffel1.jpg", "eiffel2.jpg", "eiffel3.jpg"]',
+              slug_compatible: false,
+              acf_field_type: "gallery",
+              ui_component: "image-picker"
+            },
+            {
+              name: "rating",
+              type_general: "float",
+              type_sql: "DECIMAL(2,1) CHECK (rating >= 0 AND rating <= 5)",
+              required: false,
+              unique: false,
+              primary_key: false,
+              description: "Note moyenne (0-5)",
+              example_value: "4.7",
+              slug_compatible: false,
+              acf_field_type: "number",
+              ui_component: "input"
+            },
+            {
+              name: "active",
+              type_general: "bool",
+              type_sql: "BOOLEAN DEFAULT TRUE",
+              required: false,
+              unique: false,
+              primary_key: false,
+              default_sql: "TRUE",
+              description: "Lieu actif/visible",
+              example_value: "true",
+              slug_compatible: false,
+              acf_field_type: "true_false",
+              ui_component: "toggle"
+            }
+          ]
+        }
+      ]
     }
   ];
 
+  const presetIcons = {
+    "Blog Personnel": BookOpen,
+    "E-commerce": ShoppingCart,
+    "Plateforme de Formation": GraduationCap,
+    "Services Professionnels": Briefcase,
+    "Annuaire Professionnel": Building,
+    "Annuaire de Lieux": MapPin
+  };
+
   return (
-    <Card className="w-full">
-      <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50">
-        <CardTitle className="flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-purple-600" />
-          Presets de Projets
-        </CardTitle>
-        <p className="text-sm text-slate-600">
-          Démarrez rapidement avec des structures prêtes à l'emploi
+    <div className="space-y-6">
+      <div className="text-center">
+        <h2 className="text-2xl font-bold text-slate-800 mb-4">
+          Presets de Schémas
+        </h2>
+        <p className="text-slate-600">
+          Choisissez un modèle pré-configuré pour démarrer rapidement votre projet
         </p>
-      </CardHeader>
-      <CardContent className="p-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {presets.map((preset) => (
-            <Card key={preset.id} className="border-slate-200 hover:shadow-lg transition-all cursor-pointer group">
-              <CardHeader className="pb-3">
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {presets.map((preset, index) => {
+          const IconComponent = presetIcons[preset.name as keyof typeof presetIcons];
+          
+          return (
+            <Card key={index} className="border-slate-200 hover:shadow-lg transition-shadow">
+              <CardHeader className="pb-4">
                 <div className="flex items-center gap-3 mb-2">
-                  <div className="bg-gradient-to-r from-blue-100 to-purple-100 p-2 rounded-lg group-hover:from-blue-200 group-hover:to-purple-200 transition-all">
-                    <preset.icon className="h-5 w-5 text-blue-600" />
+                  <div className="bg-gradient-to-r from-blue-100 to-indigo-100 p-2 rounded-lg">
+                    <IconComponent className="h-6 w-6 text-blue-600" />
                   </div>
-                  <CardTitle className="text-lg">{preset.title}</CardTitle>
+                  <CardTitle className="text-lg font-semibold text-slate-800">
+                    {preset.name}
+                  </CardTitle>
                 </div>
-                <p className="text-sm text-slate-600">{preset.description}</p>
-                <div className="flex flex-wrap gap-1 mt-2">
-                  {preset.tags.map(tag => (
-                    <Badge key={tag} variant="secondary" className="text-xs">
-                      {tag}
-                    </Badge>
+                <p className="text-sm text-slate-600">
+                  {preset.description}
+                </p>
+              </CardHeader>
+              
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Badge variant="outline" className="text-xs">
+                    {preset.tables.length} table{preset.tables.length > 1 ? 's' : ''}
+                  </Badge>
+                  <Badge variant="secondary" className="text-xs">
+                    v{preset.version}
+                  </Badge>
+                </div>
+                
+                <div className="space-y-2">
+                  {preset.tables.map((table, tableIndex) => (
+                    <div key={tableIndex} className="text-xs bg-slate-50 p-2 rounded">
+                      <span className="font-medium">{table.name}</span>
+                      <span className="text-slate-500 ml-2">
+                        ({table.fields.length} champs)
+                      </span>
+                    </div>
                   ))}
                 </div>
-              </CardHeader>
-              <CardContent className="pt-0">
+                
                 <Button 
-                  onClick={() => onApplyPreset(preset.schema())}
-                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-                  size="sm"
+                  onClick={() => onApplyPreset(preset)}
+                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
                 >
                   Utiliser ce preset
                 </Button>
               </CardContent>
             </Card>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+          );
+        })}
+      </div>
+    </div>
   );
 };

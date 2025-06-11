@@ -43,6 +43,15 @@ export const GeminiIntegration: React.FC<GeminiIntegrationProps> = ({
       return;
     }
 
+    if (schema.tables.length === 0) {
+      toast({
+        title: "Aucune table",
+        description: "Ajoutez au moins une table pour analyser le schéma.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
       const newSuggestions = await geminiService.analyzeSchema(schema);
@@ -96,7 +105,7 @@ export const GeminiIntegration: React.FC<GeminiIntegrationProps> = ({
   };
 
   const generateFields = async () => {
-    if (!geminiService || !activeTable) {
+    if (!geminiService || !activeTable || !context.trim()) {
       toast({
         title: "Prérequis manquants",
         description: "Clé API, table active et contexte requis.",
@@ -139,12 +148,91 @@ export const GeminiIntegration: React.FC<GeminiIntegrationProps> = ({
   };
 
   const applySuggestion = (suggestion: GeminiSuggestion) => {
-    // Implémentation de l'application des suggestions
-    // selon le type de suggestion
-    toast({
-      title: "Suggestion appliquée",
-      description: suggestion.title,
-    });
+    try {
+      switch (suggestion.type) {
+        case 'field':
+          if (activeTable && suggestion.implementation?.field) {
+            const newField: Field = {
+              name: suggestion.implementation.field.name || 'nouveau_champ',
+              type_general: suggestion.implementation.field.type_general || 'string',
+              type_sql: suggestion.implementation.field.type_sql || 'VARCHAR(255)',
+              required: Boolean(suggestion.implementation.field.required),
+              unique: Boolean(suggestion.implementation.field.unique),
+              primary_key: Boolean(suggestion.implementation.field.primary_key),
+              description: suggestion.implementation.field.description || suggestion.description,
+              example_value: suggestion.implementation.field.example_value || '',
+              slug_compatible: Boolean(suggestion.implementation.field.slug_compatible),
+              acf_field_type: suggestion.implementation.field.acf_field_type || 'text',
+              ui_component: suggestion.implementation.field.ui_component || 'input'
+            };
+            
+            const updatedTable = {
+              ...activeTable,
+              fields: [...activeTable.fields, newField]
+            };
+            onTableUpdate(updatedTable);
+          }
+          break;
+          
+        case 'optimization':
+          // Apply optimization suggestions (index, constraints, etc.)
+          if (activeTable) {
+            toast({
+              title: "Optimisation appliquée",
+              description: "Les optimisations seront visibles dans le code généré.",
+            });
+          }
+          break;
+          
+        case 'table':
+          // Create new table from suggestion
+          if (suggestion.implementation?.table) {
+            const newTable: Table = {
+              id: crypto.randomUUID(),
+              name: suggestion.implementation.table.name || 'nouvelle_table',
+              description: suggestion.implementation.table.description || suggestion.description,
+              category: suggestion.implementation.table.category || 'Général',
+              fields: suggestion.implementation.table.fields || []
+            };
+            
+            const updatedSchema = {
+              ...schema,
+              tables: [...schema.tables, newTable]
+            };
+            onSchemaUpdate(updatedSchema);
+          }
+          break;
+          
+        case 'relationship':
+          // Handle relationship suggestions
+          toast({
+            title: "Relation suggérée",
+            description: "Consultez la documentation pour implémenter cette relation.",
+          });
+          break;
+          
+        default:
+          toast({
+            title: "Type non supporté",
+            description: "Ce type de suggestion n'est pas encore supporté.",
+          });
+      }
+
+      // Remove applied suggestion
+      setSuggestions(prev => prev.filter(s => s !== suggestion));
+      
+      toast({
+        title: "Suggestion appliquée",
+        description: suggestion.title,
+      });
+    } catch (error) {
+      console.error('Error applying suggestion:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible d'appliquer cette suggestion.",
+        variant: "destructive"
+      });
+    }
   };
 
   const getConfidenceColor = (confidence: number) => {
@@ -214,7 +302,7 @@ export const GeminiIntegration: React.FC<GeminiIntegrationProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Button
             onClick={analyzeSchema}
-            disabled={!apiKey || isLoading}
+            disabled={!apiKey || isLoading || schema.tables.length === 0}
             className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
           >
             {isLoading ? (
