@@ -6,10 +6,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Database, FileCode, Zap, Download, Settings, Sparkles } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Plus, Database, FileCode, Zap, Download, Settings, Sparkles, Upload, Save } from 'lucide-react';
 import { TableEditor } from '@/components/TableEditor';
 import { ArtifactViewer } from '@/components/ArtifactViewer';
 import { ArtifactGenerator } from '@/components/ArtifactGenerator';
+import { SchemaPresets } from '@/components/SchemaPresets';
+import { GeminiIntegration } from '@/components/GeminiIntegration';
 import { Table, Schema, GeneratedArtifacts } from '@/types/schema';
 import { useToast } from '@/hooks/use-toast';
 
@@ -103,6 +106,61 @@ const Index = () => {
     });
   };
 
+  const applyPreset = (presetSchema: Schema) => {
+    setSchema(presetSchema);
+    if (presetSchema.tables.length > 0) {
+      setActiveTableId(presetSchema.tables[0].id);
+    }
+    
+    toast({
+      title: "Preset appliqué",
+      description: `Le preset "${presetSchema.name}" a été chargé avec ${presetSchema.tables.length} table(s).`,
+    });
+  };
+
+  const exportSchema = () => {
+    const dataStr = JSON.stringify(schema, null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+    
+    const exportFileDefaultName = `schema-${schema.name.toLowerCase().replace(/\s+/g, '-')}.json`;
+    
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', exportFileDefaultName);
+    linkElement.click();
+    
+    toast({
+      title: "Schema exporté",
+      description: `Le fichier ${exportFileDefaultName} a été téléchargé.`,
+    });
+  };
+
+  const importSchema = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const importedSchema = JSON.parse(e.target?.result as string);
+        setSchema(importedSchema);
+        setActiveTableId(importedSchema.tables?.[0]?.id || null);
+        
+        toast({
+          title: "Schema importé",
+          description: `Le schema "${importedSchema.name}" a été chargé.`,
+        });
+      } catch (error) {
+        toast({
+          title: "Erreur d'import",
+          description: "Le fichier JSON n'est pas valide.",
+          variant: "destructive"
+        });
+      }
+    };
+    reader.readAsText(file);
+  };
+
   const activeTable = schema.tables.find(t => t.id === activeTableId);
 
   return (
@@ -120,7 +178,7 @@ const Index = () => {
                   DataStruct Generator
                 </h1>
                 <p className="text-sm text-slate-600">
-                  Générateur multi-format de structures de données
+                  Générateur multi-format avec IA Gemini Flash 2.0
                 </p>
               </div>
             </div>
@@ -129,6 +187,33 @@ const Index = () => {
               <Badge variant="secondary" className="text-xs">
                 {schema.tables.length} table{schema.tables.length !== 1 ? 's' : ''}
               </Badge>
+              
+              <input
+                type="file"
+                accept=".json"
+                onChange={importSchema}
+                className="hidden"
+                id="import-schema"
+              />
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => document.getElementById('import-schema')?.click()}
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Importer
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={exportSchema}
+                disabled={schema.tables.length === 0}
+              >
+                <Save className="h-4 w-4 mr-2" />
+                Exporter
+              </Button>
+              
               <Button 
                 onClick={generateAllArtifacts}
                 className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
@@ -143,25 +228,150 @@ const Index = () => {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Sidebar - Configuration du projet */}
-          <div className="lg:col-span-1">
-            <Card className="sticky top-24">
+        <Tabs defaultValue="editor" className="w-full">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="editor">Éditeur</TabsTrigger>
+            <TabsTrigger value="presets">Presets</TabsTrigger>
+            <TabsTrigger value="ai">Assistant IA</TabsTrigger>
+            <TabsTrigger value="config">Configuration</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="editor" className="mt-6">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+              {/* Sidebar - Navigation des tables */}
+              <div className="lg:col-span-1">
+                <Card className="sticky top-24">
+                  <CardHeader className="bg-gradient-to-r from-slate-50 to-blue-50">
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <Database className="h-5 w-5" />
+                      Tables ({schema.tables.length})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4 space-y-4">
+                    <div className="space-y-2">
+                      {schema.tables.map(table => (
+                        <div 
+                          key={table.id}
+                          className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                            activeTableId === table.id 
+                              ? 'bg-blue-50 border-blue-200 shadow-sm' 
+                              : 'bg-white border-slate-200 hover:bg-slate-50'
+                          }`}
+                          onClick={() => setActiveTableId(table.id)}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="font-medium text-sm">
+                              {table.name || 'Table sans nom'}
+                            </span>
+                            <Badge variant="outline" className="text-xs">
+                              {table.fields.length}
+                            </Badge>
+                          </div>
+                          {table.description && (
+                            <p className="text-xs text-slate-600 mt-1 truncate">
+                              {table.description}
+                            </p>
+                          )}
+                          {table.category && (
+                            <Badge variant="secondary" className="text-xs mt-1">
+                              {table.category}
+                            </Badge>
+                          )}
+                        </div>
+                      ))}
+                      
+                      <Button 
+                        onClick={addTable}
+                        variant="outline" 
+                        className="w-full mt-3"
+                        size="sm"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Ajouter une table
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Main Content */}
+              <div className="lg:col-span-3">
+                {activeTable ? (
+                  <TableEditor
+                    table={activeTable}
+                    onUpdate={(updatedTable) => updateTable(activeTable.id, updatedTable)}
+                    onDelete={() => deleteTable(activeTable.id)}
+                    onGenerateArtifacts={generateArtifacts}
+                  />
+                ) : (
+                  <Card className="h-96">
+                    <CardContent className="flex items-center justify-center h-full">
+                      <div className="text-center">
+                        <Database className="h-16 w-16 mx-auto text-slate-300 mb-4" />
+                        <h3 className="text-lg font-medium text-slate-600 mb-2">
+                          Aucune table sélectionnée
+                        </h3>
+                        <p className="text-slate-500 mb-4">
+                          Sélectionnez une table existante ou créez-en une nouvelle
+                        </p>
+                        <Button onClick={addTable} className="bg-blue-600 hover:bg-blue-700">
+                          <Plus className="h-4 w-4 mr-2" />
+                          Créer ma première table
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="presets" className="mt-6">
+            <SchemaPresets onApplyPreset={applyPreset} />
+          </TabsContent>
+
+          <TabsContent value="ai" className="mt-6">
+            <GeminiIntegration
+              schema={schema}
+              activeTable={activeTable}
+              onSchemaUpdate={setSchema}
+              onTableUpdate={(updatedTable) => {
+                if (activeTable) {
+                  updateTable(activeTable.id, updatedTable);
+                }
+              }}
+            />
+          </TabsContent>
+
+          <TabsContent value="config" className="mt-6">
+            <Card>
               <CardHeader className="bg-gradient-to-r from-slate-50 to-blue-50">
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <Settings className="h-5 w-5" />
-                  Configuration
+                  Configuration du Projet
                 </CardTitle>
               </CardHeader>
-              <CardContent className="p-4 space-y-4">
-                <div>
-                  <Label htmlFor="project-name">Nom du projet</Label>
-                  <Input
-                    id="project-name"
-                    value={schema.name}
-                    onChange={(e) => setSchema(prev => ({ ...prev, name: e.target.value }))}
-                    className="mt-1"
-                  />
+              <CardContent className="p-6 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="project-name">Nom du projet</Label>
+                    <Input
+                      id="project-name"
+                      value={schema.name}
+                      onChange={(e) => setSchema(prev => ({ ...prev, name: e.target.value }))}
+                      className="mt-1"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="project-version">Version</Label>
+                    <Input
+                      id="project-version"
+                      value={schema.version}
+                      onChange={(e) => setSchema(prev => ({ ...prev, version: e.target.value }))}
+                      className="mt-1"
+                    />
+                  </div>
                 </div>
                 
                 <div>
@@ -171,94 +381,40 @@ const Index = () => {
                     value={schema.description}
                     onChange={(e) => setSchema(prev => ({ ...prev, description: e.target.value }))}
                     className="mt-1"
-                    rows={3}
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="project-version">Version</Label>
-                  <Input
-                    id="project-version"
-                    value={schema.version}
-                    onChange={(e) => setSchema(prev => ({ ...prev, version: e.target.value }))}
-                    className="mt-1"
+                    rows={4}
                   />
                 </div>
 
-                <div className="pt-4 border-t">
-                  <h4 className="font-medium text-slate-700 mb-3">Tables du projet</h4>
-                  <div className="space-y-2">
-                    {schema.tables.map(table => (
-                      <div 
-                        key={table.id}
-                        className={`p-2 rounded-lg border cursor-pointer transition-all ${
-                          activeTableId === table.id 
-                            ? 'bg-blue-50 border-blue-200' 
-                            : 'bg-white border-slate-200 hover:bg-slate-50'
-                        }`}
-                        onClick={() => setActiveTableId(table.id)}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="font-medium text-sm">
-                            {table.name || 'Table sans nom'}
-                          </span>
-                          <Badge variant="outline" className="text-xs">
-                            {table.fields.length}
-                          </Badge>
-                        </div>
-                        {table.description && (
-                          <p className="text-xs text-slate-600 mt-1 truncate">
-                            {table.description}
-                          </p>
-                        )}
-                      </div>
-                    ))}
-                    
-                    <Button 
-                      onClick={addTable}
-                      variant="outline" 
-                      className="w-full mt-3"
-                      size="sm"
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Ajouter une table
-                    </Button>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-slate-50 rounded-lg">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-slate-800">
+                      {schema.tables.length}
+                    </div>
+                    <div className="text-xs text-slate-600">Tables</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-slate-800">
+                      {schema.tables.reduce((acc, table) => acc + table.fields.length, 0)}
+                    </div>
+                    <div className="text-xs text-slate-600">Champs totaux</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-blue-600">
+                      {schema.tables.filter(t => t.fields.some(f => f.primary_key)).length}
+                    </div>
+                    <div className="text-xs text-slate-600">Clés primaires</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-green-600">
+                      {schema.tables.reduce((acc, table) => acc + table.fields.filter(f => f.type_general === 'relation').length, 0)}
+                    </div>
+                    <div className="text-xs text-slate-600">Relations</div>
                   </div>
                 </div>
               </CardContent>
             </Card>
-          </div>
-
-          {/* Main Content */}
-          <div className="lg:col-span-3">
-            {activeTable ? (
-              <TableEditor
-                table={activeTable}
-                onUpdate={(updatedTable) => updateTable(activeTable.id, updatedTable)}
-                onDelete={() => deleteTable(activeTable.id)}
-                onGenerateArtifacts={generateArtifacts}
-              />
-            ) : (
-              <Card className="h-96">
-                <CardContent className="flex items-center justify-center h-full">
-                  <div className="text-center">
-                    <Database className="h-16 w-16 mx-auto text-slate-300 mb-4" />
-                    <h3 className="text-lg font-medium text-slate-600 mb-2">
-                      Aucune table sélectionnée
-                    </h3>
-                    <p className="text-slate-500 mb-4">
-                      Sélectionnez une table existante ou créez-en une nouvelle
-                    </p>
-                    <Button onClick={addTable} className="bg-blue-600 hover:bg-blue-700">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Créer ma première table
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        </div>
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Features Panel */}
