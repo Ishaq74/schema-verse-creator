@@ -1,4 +1,3 @@
-
 import { Table, Field, Schema } from '@/types/schema';
 
 export interface GeminiConfig {
@@ -156,6 +155,50 @@ export class GeminiService {
     }
   }
 
+  async generateSampleData(table: Table, rowCount: number = 5, context: string = ''): Promise<any[]> {
+    const prompt = this.createDataGenerationPrompt(table, rowCount, context);
+    
+    try {
+      const response = await fetch(`${this.baseUrl}/${this.model}:generateContent?key=${this.apiKey}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: prompt
+            }]
+          }],
+          generationConfig: {
+            temperature: 0.7,
+            topK: 40,
+            topP: 0.95,
+            maxOutputTokens: 4096,
+          }
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error('Gemini API error response:', errorData);
+        throw new Error(`Gemini API error: ${response.status} - ${errorData}`);
+      }
+
+      const data = await response.json();
+      const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      
+      if (!generatedText) {
+        throw new Error('No response from Gemini API');
+      }
+
+      return this.parseSampleData(generatedText);
+    } catch (error) {
+      console.error('Error generating sample data with Gemini:', error);
+      throw error;
+    }
+  }
+
   private createAnalysisPrompt(schema: Schema): string {
     return `
 Analyse ce schéma de base de données et propose des améliorations structurelles :
@@ -263,6 +306,41 @@ RETOURNE UNIQUEMENT UN ARRAY JSON DE CHAMPS :
 `;
   }
 
+  private createDataGenerationPrompt(table: Table, rowCount: number, context: string): string {
+    return `
+Génère ${rowCount} lignes de données d'exemple réalistes et cohérentes pour cette table :
+
+TABLE : ${table.name}
+DESCRIPTION : ${table.description}
+CONTEXTE : ${context}
+
+STRUCTURE :
+${JSON.stringify(table.fields.map(f => ({
+  name: f.name,
+  type: f.type_general,
+  description: f.description,
+  example: f.example_value,
+  required: f.required
+})), null, 2)}
+
+INSTRUCTIONS :
+- Génère des données réalistes et variées
+- Respecte les contraintes (required, unique, etc.)
+- Utilise des valeurs cohérentes avec le contexte
+- Assure la cohérence entre les champs liés
+- Utilise des formats appropriés (emails valides, URLs, dates, etc.)
+- Pour les relations, utilise des IDs existants ou réalistes
+
+RETOURNE UNIQUEMENT UN ARRAY JSON :
+[
+  {
+    "field1": "valeur1",
+    "field2": "valeur2"
+  }
+]
+`;
+  }
+
   private parseSuggestions(text: string): GeminiSuggestion[] {
     try {
       const jsonMatch = text.match(/\{[\s\S]*\}/);
@@ -350,6 +428,22 @@ RETOURNE UNIQUEMENT UN ARRAY JSON DE CHAMPS :
                    }));
     } catch (error) {
       console.error('Error parsing generated fields:', error);
+      return [];
+    }
+  }
+
+  private parseSampleData(text: string): any[] {
+    try {
+      const jsonMatch = text.match(/\[[\s\S]*\]/);
+      if (!jsonMatch) {
+        console.warn('No JSON array found in Gemini response');
+        return [];
+      }
+
+      const parsed = JSON.parse(jsonMatch[0]);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      console.error('Error parsing sample data:', error);
       return [];
     }
   }

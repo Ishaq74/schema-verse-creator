@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,9 +7,12 @@ import { Schema } from '@/types/schema';
 
 interface SchemaPresetsProps {
   onApplyPreset: (preset: Schema) => void;
+  onMergePresets: (presets: Schema[]) => void;
 }
 
-export const SchemaPresets: React.FC<SchemaPresetsProps> = ({ onApplyPreset }) => {
+export const SchemaPresets: React.FC<SchemaPresetsProps> = ({ onApplyPreset, onMergePresets }) => {
+  const [selectedPresets, setSelectedPresets] = React.useState<Schema[]>([]);
+
   const presets: Schema[] = [
     {
       name: "Blog Personnel",
@@ -109,7 +111,7 @@ export const SchemaPresets: React.FC<SchemaPresetsProps> = ({ onApplyPreset }) =
               unique: false,
               primary_key: false,
               foreign_key: "categories(id)",
-              relation_cardinality: "N-1",
+              relation_cardinality: "1-N",
               description: "Catégorie de l'article",
               example_value: "tech-web",
               slug_compatible: false,
@@ -373,7 +375,7 @@ export const SchemaPresets: React.FC<SchemaPresetsProps> = ({ onApplyPreset }) =
               unique: false,
               primary_key: false,
               foreign_key: "product_categories(id)",
-              relation_cardinality: "N-1",
+              relation_cardinality: "1-N",
               description: "Catégorie du produit",
               example_value: "vetements",
               slug_compatible: false,
@@ -775,7 +777,7 @@ export const SchemaPresets: React.FC<SchemaPresetsProps> = ({ onApplyPreset }) =
               unique: false,
               primary_key: false,
               foreign_key: "business_categories(id)",
-              relation_cardinality: "N-1",
+              relation_cardinality: "1-N",
               description: "Catégorie d'activité",
               example_value: "restaurants",
               slug_compatible: false,
@@ -997,6 +999,24 @@ export const SchemaPresets: React.FC<SchemaPresetsProps> = ({ onApplyPreset }) =
     "Annuaire de Lieux": MapPin
   };
 
+  const togglePresetSelection = (preset: Schema) => {
+    setSelectedPresets(prev => {
+      const isSelected = prev.some(p => p.name === preset.name);
+      if (isSelected) {
+        return prev.filter(p => p.name !== preset.name);
+      } else {
+        return [...prev, preset];
+      }
+    });
+  };
+
+  const handleMergeSelected = () => {
+    if (selectedPresets.length > 0) {
+      onMergePresets(selectedPresets);
+      setSelectedPresets([]);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="text-center">
@@ -1004,16 +1024,48 @@ export const SchemaPresets: React.FC<SchemaPresetsProps> = ({ onApplyPreset }) =
           Presets de Schémas
         </h2>
         <p className="text-slate-600">
-          Choisissez un modèle pré-configuré pour démarrer rapidement votre projet
+          Choisissez un ou plusieurs modèles pré-configurés pour démarrer rapidement votre projet
         </p>
       </div>
+
+      {selectedPresets.length > 0 && (
+        <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold text-blue-800">
+                {selectedPresets.length} preset(s) sélectionné(s)
+              </h3>
+              <p className="text-sm text-blue-600">
+                {selectedPresets.map(p => p.name).join(', ')}
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                onClick={handleMergeSelected}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                Fusionner les presets
+              </Button>
+              <Button
+                onClick={() => setSelectedPresets([])}
+                variant="outline"
+              >
+                Annuler
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {presets.map((preset, index) => {
           const IconComponent = presetIcons[preset.name as keyof typeof presetIcons];
+          const isSelected = selectedPresets.some(p => p.name === preset.name);
           
           return (
-            <Card key={index} className="border-slate-200 hover:shadow-lg transition-shadow">
+            <Card key={index} className={`border-slate-200 hover:shadow-lg transition-all cursor-pointer ${
+              isSelected ? 'ring-2 ring-blue-500 bg-blue-50' : ''
+            }`}>
               <CardHeader className="pb-4">
                 <div className="flex items-center gap-3 mb-2">
                   <div className="bg-gradient-to-r from-blue-100 to-indigo-100 p-2 rounded-lg">
@@ -1049,12 +1101,21 @@ export const SchemaPresets: React.FC<SchemaPresetsProps> = ({ onApplyPreset }) =
                   ))}
                 </div>
                 
-                <Button 
-                  onClick={() => onApplyPreset(preset)}
-                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-                >
-                  Utiliser ce preset
-                </Button>
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={() => onApplyPreset(preset)}
+                    className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                  >
+                    Utiliser seul
+                  </Button>
+                  <Button
+                    onClick={() => togglePresetSelection(preset)}
+                    variant={isSelected ? "default" : "outline"}
+                    className={isSelected ? "bg-blue-600 hover:bg-blue-700" : ""}
+                  >
+                    {isSelected ? "✓" : "+"}
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           );
@@ -1063,3 +1124,5 @@ export const SchemaPresets: React.FC<SchemaPresetsProps> = ({ onApplyPreset }) =
     </div>
   );
 };
+
+export default SchemaPresets;
