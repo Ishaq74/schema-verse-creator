@@ -1,10 +1,9 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Copy, Download, FileCode, Database, Astro, Wordpress } from 'lucide-react';
+import { Copy, Download, FileCode, Database, Globe, Settings } from 'lucide-react';
 import { GeneratedArtifacts } from '@/types/schema';
 import { useToast } from '@/hooks/use-toast';
 
@@ -64,7 +63,7 @@ export const ArtifactViewer: React.FC<ArtifactViewerProps> = ({
     {
       id: 'astro-page',
       title: 'Page Astro [slug]',
-      icon: FileCode,
+      icon: Globe,
       content: artifacts.astro_page,
       filename: `[slug].astro`,
       mimeType: 'text/html',
@@ -73,7 +72,7 @@ export const ArtifactViewer: React.FC<ArtifactViewerProps> = ({
     {
       id: 'acf',
       title: 'WordPress ACF',
-      icon: Wordpress,
+      icon: Settings,
       content: artifacts.acf_json,
       filename: `${tableName}-acf.json`,
       mimeType: 'application/json',
