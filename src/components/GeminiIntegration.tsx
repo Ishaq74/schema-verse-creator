@@ -9,10 +9,12 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { 
   Sparkles, Loader2, Lightbulb, Plus, Wand2, AlertCircle, 
   Save, Trash2, FileText, Database, SearchCheck, 
-  BarChart3, Download, Eye, Settings, BookOpen 
+  BarChart3, Download, Eye, Settings, BookOpen,
+  Check, X, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { Table, Field, Schema } from '@/types/schema';
 import { GeminiService, GeminiSuggestion, ContentGenerationRequest, ContentGenerationResult } from '@/services/GeminiService';
@@ -25,6 +27,12 @@ interface GeminiIntegrationProps {
   onTableUpdate: (table: Table) => void;
 }
 
+interface PendingSuggestion extends GeminiSuggestion {
+  id: string;
+  selected: boolean;
+  expanded: boolean;
+}
+
 export const GeminiIntegration: React.FC<GeminiIntegrationProps> = ({
   schema,
   activeTable,
@@ -33,7 +41,7 @@ export const GeminiIntegration: React.FC<GeminiIntegrationProps> = ({
 }) => {
   const [apiKey, setApiKey] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [suggestions, setSuggestions] = useState<GeminiSuggestion[]>([]);
+  const [pendingSuggestions, setPendingSuggestions] = useState<PendingSuggestion[]>([]);
   const [context, setContext] = useState('');
   const [generatedData, setGeneratedData] = useState<ContentGenerationResult | null>(null);
   const [validationResult, setValidationResult] = useState<any>(null);
@@ -43,6 +51,7 @@ export const GeminiIntegration: React.FC<GeminiIntegrationProps> = ({
   const [recordCount, setRecordCount] = useState(10);
   const [dataLanguage, setDataLanguage] = useState('fr');
   const [dataStyle, setDataStyle] = useState('réaliste');
+  const [contentGenerationMode, setContentGenerationMode] = useState<'table' | 'global'>('table');
   
   // SEO settings
   const [seoKeywords, setSeoKeywords] = useState('');
@@ -50,7 +59,6 @@ export const GeminiIntegration: React.FC<GeminiIntegrationProps> = ({
   const { toast } = useToast();
 
   useEffect(() => {
-    // Load stored API key on component mount
     const storedKey = GeminiService.getStoredApiKey();
     if (storedKey) {
       setApiKey(storedKey);
@@ -78,6 +86,7 @@ export const GeminiIntegration: React.FC<GeminiIntegrationProps> = ({
     });
   };
 
+  // Analyse du schéma avec suggestions en attente
   const analyzeSchema = async () => {
     if (!geminiService) {
       toast({
@@ -99,12 +108,18 @@ export const GeminiIntegration: React.FC<GeminiIntegrationProps> = ({
 
     setIsLoading(true);
     try {
-      const newSuggestions = await geminiService.analyzeSchema(schema);
-      setSuggestions(newSuggestions);
+      const suggestions = await geminiService.analyzeSchema(schema);
+      const pendingWithIds = suggestions.map(s => ({
+        ...s,
+        id: crypto.randomUUID(),
+        selected: false,
+        expanded: false
+      }));
+      setPendingSuggestions(pendingWithIds);
       
       toast({
         title: "Analyse terminée",
-        description: `${newSuggestions.length} suggestions générées par Gemini Flash 2.0.`,
+        description: `${suggestions.length} suggestions générées. Sélectionnez celles à appliquer.`,
       });
     } catch (error) {
       console.error('Error analyzing schema:', error);
@@ -118,160 +133,7 @@ export const GeminiIntegration: React.FC<GeminiIntegrationProps> = ({
     }
   };
 
-  const improveTable = async () => {
-    if (!geminiService || !activeTable) {
-      toast({
-        title: "Prérequis manquants",
-        description: "Clé API et table active requises.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const improvedTable = await geminiService.improveTable(activeTable);
-      onTableUpdate(improvedTable);
-      
-      toast({
-        title: "Table améliorée",
-        description: `La table "${activeTable.name}" a été optimisée par Gemini.`,
-      });
-    } catch (error) {
-      console.error('Error improving table:', error);
-      toast({
-        title: "Erreur d'amélioration",
-        description: "Impossible d'améliorer la table.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const generateFields = async () => {
-    if (!geminiService || !activeTable || !context.trim()) {
-      toast({
-        title: "Prérequis manquants",
-        description: "Clé API, table active et contexte requis.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const newFields = await geminiService.generateMissingFields(activeTable, context);
-      
-      if (newFields.length > 0) {
-        const updatedTable = {
-          ...activeTable,
-          fields: [...activeTable.fields, ...newFields]
-        };
-        onTableUpdate(updatedTable);
-        
-        toast({
-          title: "Champs générés",
-          description: `${newFields.length} nouveaux champs ajoutés par Gemini.`,
-        });
-      } else {
-        toast({
-          title: "Aucun champ généré",
-          description: "Gemini n'a pas trouvé de champs à ajouter.",
-        });
-      }
-    } catch (error) {
-      console.error('Error generating fields:', error);
-      toast({
-        title: "Erreur de génération",
-        description: "Impossible de générer les champs.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const generateSampleData = async () => {
-    if (!geminiService || !activeTable) {
-      toast({
-        title: "Prérequis manquants",
-        description: "Clé API et table active requises.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const request: ContentGenerationRequest = {
-        table: activeTable,
-        recordCount,
-        context: context || `Données pour ${activeTable.name}`,
-        language: dataLanguage,
-        style: dataStyle
-      };
-
-      const result = await geminiService.generateSampleData(request);
-      setGeneratedData(result);
-      
-      toast({
-        title: "Données générées",
-        description: `${result.data.length} enregistrements créés pour "${activeTable.name}".`,
-      });
-    } catch (error) {
-      console.error('Error generating sample data:', error);
-      toast({
-        title: "Erreur de génération",
-        description: "Impossible de générer les données d'exemple.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const optimizeForSEO = async () => {
-    if (!geminiService || !activeTable) {
-      toast({
-        title: "Prérequis manquants",
-        description: "Clé API et table active requises.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const keywords = seoKeywords.split(',').map(k => k.trim()).filter(k => k);
-    if (keywords.length === 0) {
-      toast({
-        title: "Mots-clés requis",
-        description: "Saisissez au moins un mot-clé pour l'optimisation SEO.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const seoSuggestions = await geminiService.optimizeForSEO(activeTable, keywords);
-      setSuggestions(prev => [...prev, ...seoSuggestions]);
-      
-      toast({
-        title: "Optimisation SEO",
-        description: `${seoSuggestions.length} suggestions SEO générées.`,
-      });
-    } catch (error) {
-      console.error('Error optimizing for SEO:', error);
-      toast({
-        title: "Erreur SEO",
-        description: "Impossible de générer les optimisations SEO.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
+  // Validation et diagnostic séparés
   const validateSchema = async () => {
     if (!geminiService) {
       toast({
@@ -288,20 +150,307 @@ export const GeminiIntegration: React.FC<GeminiIntegrationProps> = ({
       setValidationResult(result);
       
       toast({
-        title: "Validation terminée",
-        description: `${result.errors.length} erreurs, ${result.warnings.length} avertissements trouvés.`,
+        title: "Diagnostic terminé",
+        description: `${result.errors.length} erreurs, ${result.warnings.length} avertissements détectés.`,
         variant: result.errors.length > 0 ? "destructive" : "default"
       });
     } catch (error) {
       console.error('Error validating schema:', error);
       toast({
-        title: "Erreur de validation",
-        description: "Impossible de valider le schéma.",
+        title: "Erreur de diagnostic",
+        description: "Impossible de diagnostiquer le schéma.",
         variant: "destructive"
       });
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Amélioration de table avec prévisualisation
+  const improveTable = async () => {
+    if (!geminiService || !activeTable) {
+      toast({
+        title: "Prérequis manquants",
+        description: "Clé API et table active requises.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const improvedTable = await geminiService.improveTable(activeTable);
+      
+      // Créer une suggestion pour l'amélioration de table
+      const improvementSuggestion: PendingSuggestion = {
+        id: crypto.randomUUID(),
+        type: 'table',
+        title: `Amélioration de la table "${activeTable.name}"`,
+        description: `${improvedTable.fields.length - activeTable.fields.length} nouveaux champs ajoutés, descriptions améliorées`,
+        implementation: { improvedTable },
+        confidence: 0.9,
+        category: 'Amélioration',
+        impact: 'high',
+        selected: false,
+        expanded: true
+      };
+      
+      setPendingSuggestions(prev => [improvementSuggestion, ...prev]);
+      
+      toast({
+        title: "Amélioration proposée",
+        description: "Consultez les suggestions pour valider les améliorations.",
+      });
+    } catch (error) {
+      console.error('Error improving table:', error);
+      toast({
+        title: "Erreur d'amélioration",
+        description: "Impossible de proposer des améliorations.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Génération de contenu améliorée
+  const generateSampleData = async () => {
+    if (!geminiService) {
+      toast({
+        title: "Clé API manquante",
+        description: "Clé API requise pour générer du contenu.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const tablesToProcess = contentGenerationMode === 'global' 
+      ? schema.tables 
+      : activeTable ? [activeTable] : [];
+
+    if (tablesToProcess.length === 0) {
+      toast({
+        title: "Aucune table sélectionnée",
+        description: "Sélectionnez une table ou passez en mode global.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const allGeneratedData: Record<string, any[]> = {};
+      
+      for (const table of tablesToProcess) {
+        const request: ContentGenerationRequest = {
+          table,
+          recordCount,
+          context: context || `Données pour ${table.name}`,
+          language: dataLanguage,
+          style: dataStyle
+        };
+
+        const result = await geminiService.generateSampleData(request);
+        allGeneratedData[table.name] = result.data;
+      }
+      
+      setGeneratedData({
+        data: Object.values(allGeneratedData).flat(),
+        metadata: {
+          generated_count: Object.values(allGeneratedData).reduce((acc, data) => acc + data.length, 0),
+          context_applied: context || 'Génération automatique',
+          generation_time: new Date().toISOString()
+        }
+      });
+      
+      toast({
+        title: "Contenu généré",
+        description: `Données créées pour ${tablesToProcess.length} table(s).`,
+      });
+    } catch (error) {
+      console.error('Error generating sample data:', error);
+      toast({
+        title: "Erreur de génération",
+        description: "Impossible de générer le contenu.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Optimisation SEO fonctionnelle
+  const optimizeForSEO = async () => {
+    if (!geminiService) {
+      toast({
+        title: "Clé API manquante",
+        description: "Clé API requise pour l'optimisation SEO.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const keywords = seoKeywords.split(',').map(k => k.trim()).filter(k => k);
+    if (keywords.length === 0) {
+      toast({
+        title: "Mots-clés requis",
+        description: "Saisissez au moins un mot-clé pour l'optimisation SEO.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const tablesToOptimize = activeTable ? [activeTable] : schema.tables;
+
+    setIsLoading(true);
+    try {
+      const allSeoSuggestions: PendingSuggestion[] = [];
+      
+      for (const table of tablesToOptimize) {
+        const seoSuggestions = await geminiService.optimizeForSEO(table, keywords);
+        const pendingWithIds = seoSuggestions.map(s => ({
+          ...s,
+          id: crypto.randomUUID(),
+          selected: false,
+          expanded: false
+        }));
+        allSeoSuggestions.push(...pendingWithIds);
+      }
+      
+      setPendingSuggestions(prev => [...allSeoSuggestions, ...prev]);
+      
+      toast({
+        title: "Optimisations SEO générées",
+        description: `${allSeoSuggestions.length} suggestions SEO créées.`,
+      });
+    } catch (error) {
+      console.error('Error optimizing for SEO:', error);
+      toast({
+        title: "Erreur SEO",
+        description: "Impossible de générer les optimisations SEO.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Gestion des suggestions
+  const toggleSuggestionSelection = (id: string) => {
+    setPendingSuggestions(prev =>
+      prev.map(s => s.id === id ? { ...s, selected: !s.selected } : s)
+    );
+  };
+
+  const toggleSuggestionExpansion = (id: string) => {
+    setPendingSuggestions(prev =>
+      prev.map(s => s.id === id ? { ...s, expanded: !s.expanded } : s)
+    );
+  };
+
+  const selectAllSuggestions = () => {
+    setPendingSuggestions(prev => prev.map(s => ({ ...s, selected: true })));
+  };
+
+  const deselectAllSuggestions = () => {
+    setPendingSuggestions(prev => prev.map(s => ({ ...s, selected: false })));
+  };
+
+  const applySelectedSuggestions = () => {
+    const selectedSuggestions = pendingSuggestions.filter(s => s.selected);
+    
+    if (selectedSuggestions.length === 0) {
+      toast({
+        title: "Aucune suggestion sélectionnée",
+        description: "Sélectionnez au moins une suggestion à appliquer.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    let appliedCount = 0;
+    
+    selectedSuggestions.forEach(suggestion => {
+      try {
+        switch (suggestion.type) {
+          case 'field':
+            if (activeTable && suggestion.implementation?.field) {
+              const newField: Field = {
+                name: suggestion.implementation.field.name || 'nouveau_champ',
+                type_general: suggestion.implementation.field.type_general || 'string',
+                type_sql: suggestion.implementation.field.type_sql || 'VARCHAR(255)',
+                required: Boolean(suggestion.implementation.field.required),
+                unique: Boolean(suggestion.implementation.field.unique),
+                primary_key: Boolean(suggestion.implementation.field.primary_key),
+                foreign_key: suggestion.implementation.field.foreign_key,
+                relation_cardinality: suggestion.implementation.field.relation_cardinality,
+                enum_values: suggestion.implementation.field.enum_values,
+                description: suggestion.implementation.field.description || suggestion.description,
+                example_value: suggestion.implementation.field.example_value || '',
+                category: suggestion.implementation.field.category,
+                notes: suggestion.implementation.field.notes,
+                slug_compatible: Boolean(suggestion.implementation.field.slug_compatible),
+                acf_field_type: suggestion.implementation.field.acf_field_type || 'text',
+                ui_component: suggestion.implementation.field.ui_component || 'input'
+              };
+              
+              const updatedTable = {
+                ...activeTable,
+                fields: [...activeTable.fields, newField]
+              };
+              onTableUpdate(updatedTable);
+              appliedCount++;
+            }
+            break;
+            
+          case 'table':
+            if (suggestion.implementation?.improvedTable) {
+              // Application d'une table améliorée
+              onTableUpdate(suggestion.implementation.improvedTable);
+              appliedCount++;
+            } else if (suggestion.implementation?.table) {
+              // Création d'une nouvelle table
+              const newTable: Table = {
+                id: crypto.randomUUID(),
+                name: suggestion.implementation.table.name || 'nouvelle_table',
+                description: suggestion.implementation.table.description || suggestion.description,
+                category: suggestion.implementation.table.category || 'Général',
+                fields: suggestion.implementation.table.fields || []
+              };
+              
+              const updatedSchema = {
+                ...schema,
+                tables: [...schema.tables, newTable]
+              };
+              onSchemaUpdate(updatedSchema);
+              appliedCount++;
+            }
+            break;
+            
+          default:
+            // Pour les autres types (SEO, optimisation, etc.), on les marque comme appliqués
+            appliedCount++;
+        }
+      } catch (error) {
+        console.error('Error applying suggestion:', error);
+      }
+    });
+
+    // Supprimer les suggestions appliquées
+    setPendingSuggestions(prev => prev.filter(s => !s.selected));
+    
+    toast({
+      title: "Suggestions appliquées",
+      description: `${appliedCount} modification(s) appliquée(s) avec succès.`,
+    });
+  };
+
+  const discardSelectedSuggestions = () => {
+    setPendingSuggestions(prev => prev.filter(s => !s.selected));
+    toast({
+      title: "Suggestions supprimées",
+      description: "Les suggestions sélectionnées ont été supprimées.",
+    });
   };
 
   const generateDocumentation = async () => {
@@ -335,97 +484,6 @@ export const GeminiIntegration: React.FC<GeminiIntegrationProps> = ({
     }
   };
 
-  const applySuggestion = (suggestion: GeminiSuggestion) => {
-    try {
-      switch (suggestion.type) {
-        case 'field':
-          if (activeTable && suggestion.implementation?.field) {
-            const newField: Field = {
-              name: suggestion.implementation.field.name || 'nouveau_champ',
-              type_general: suggestion.implementation.field.type_general || 'string',
-              type_sql: suggestion.implementation.field.type_sql || 'VARCHAR(255)',
-              required: Boolean(suggestion.implementation.field.required),
-              unique: Boolean(suggestion.implementation.field.unique),
-              primary_key: Boolean(suggestion.implementation.field.primary_key),
-              foreign_key: suggestion.implementation.field.foreign_key,
-              relation_cardinality: suggestion.implementation.field.relation_cardinality,
-              enum_values: suggestion.implementation.field.enum_values,
-              description: suggestion.implementation.field.description || suggestion.description,
-              example_value: suggestion.implementation.field.example_value || '',
-              category: suggestion.implementation.field.category,
-              notes: suggestion.implementation.field.notes,
-              slug_compatible: Boolean(suggestion.implementation.field.slug_compatible),
-              acf_field_type: suggestion.implementation.field.acf_field_type || 'text',
-              ui_component: suggestion.implementation.field.ui_component || 'input'
-            };
-            
-            const updatedTable = {
-              ...activeTable,
-              fields: [...activeTable.fields, newField]
-            };
-            onTableUpdate(updatedTable);
-          }
-          break;
-          
-        case 'optimization':
-        case 'seo':
-          if (activeTable) {
-            toast({
-              title: "Optimisation appliquée",
-              description: "Les optimisations seront visibles dans le code généré.",
-            });
-          }
-          break;
-          
-        case 'table':
-          if (suggestion.implementation?.table) {
-            const newTable: Table = {
-              id: crypto.randomUUID(),
-              name: suggestion.implementation.table.name || 'nouvelle_table',
-              description: suggestion.implementation.table.description || suggestion.description,
-              category: suggestion.implementation.table.category || 'Général',
-              fields: suggestion.implementation.table.fields || []
-            };
-            
-            const updatedSchema = {
-              ...schema,
-              tables: [...schema.tables, newTable]
-            };
-            onSchemaUpdate(updatedSchema);
-          }
-          break;
-          
-        case 'relationship':
-          toast({
-            title: "Relation suggérée",
-            description: "Consultez la documentation pour implémenter cette relation.",
-          });
-          break;
-          
-        default:
-          toast({
-            title: "Type non supporté",
-            description: "Ce type de suggestion n'est pas encore supporté.",
-          });
-      }
-
-      // Remove applied suggestion
-      setSuggestions(prev => prev.filter(s => s !== suggestion));
-      
-      toast({
-        title: "Suggestion appliquée",
-        description: suggestion.title,
-      });
-    } catch (error) {
-      console.error('Error applying suggestion:', error);
-      toast({
-        title: "Erreur",
-        description: "Impossible d'appliquer cette suggestion.",
-        variant: "destructive"
-      });
-    }
-  };
-
   const downloadGeneratedData = () => {
     if (!generatedData) return;
     
@@ -434,7 +492,7 @@ export const GeminiIntegration: React.FC<GeminiIntegrationProps> = ({
     const url = URL.createObjectURL(dataBlob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `${activeTable?.name || 'data'}_sample.json`;
+    link.download = `${activeTable?.name || 'schema'}_sample_data.json`;
     link.click();
     URL.revokeObjectURL(url);
   };
@@ -461,6 +519,7 @@ export const GeminiIntegration: React.FC<GeminiIntegrationProps> = ({
       case 'relationship': return Sparkles;
       case 'seo': return SearchCheck;
       case 'content': return FileText;
+      case 'table': return Database;
       default: return Lightbulb;
     }
   };
@@ -470,10 +529,10 @@ export const GeminiIntegration: React.FC<GeminiIntegrationProps> = ({
       <CardHeader className="bg-gradient-to-r from-purple-50 via-indigo-50 to-blue-50">
         <CardTitle className="flex items-center gap-2">
           <Sparkles className="h-6 w-6 text-purple-600" />
-          Assistant IA Gemini Flash 2.0 - Ultra Complet
+          Assistant IA Gemini Flash 2.0 - Interface Refactorisée
         </CardTitle>
         <p className="text-sm text-slate-600">
-          Suite complète d'outils IA pour optimiser et enrichir vos structures de données
+          Interface claire avec validation individuelle et génération de contenu avancée
         </p>
       </CardHeader>
       
@@ -482,27 +541,27 @@ export const GeminiIntegration: React.FC<GeminiIntegrationProps> = ({
           <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="config" className="flex items-center gap-2">
               <Settings className="h-4 w-4" />
-              Config
+              Configuration
             </TabsTrigger>
             <TabsTrigger value="analysis" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
-              Analyse
+              Analyse Schéma
             </TabsTrigger>
-            <TabsTrigger value="generation" className="flex items-center gap-2">
-              <Database className="h-4 w-4" />
-              Génération
+            <TabsTrigger value="suggestions" className="flex items-center gap-2">
+              <Lightbulb className="h-4 w-4" />
+              Suggestions ({pendingSuggestions.length})
             </TabsTrigger>
             <TabsTrigger value="content" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
-              Contenu
+              Génération Contenu
             </TabsTrigger>
             <TabsTrigger value="seo" className="flex items-center gap-2">
               <SearchCheck className="h-4 w-4" />
-              SEO
+              Optimisation SEO
             </TabsTrigger>
             <TabsTrigger value="docs" className="flex items-center gap-2">
               <BookOpen className="h-4 w-4" />
-              Docs
+              Documentation
             </TabsTrigger>
           </TabsList>
 
@@ -564,7 +623,7 @@ export const GeminiIntegration: React.FC<GeminiIntegrationProps> = ({
                 <Alert>
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
-                    Une clé API Gemini est requise pour utiliser l'assistant IA. Toutes les fonctionnalités avancées seront disponibles une fois configurée.
+                    Une clé API Gemini est requise pour utiliser l'assistant IA.
                   </AlertDescription>
                 </Alert>
               )}
@@ -572,7 +631,7 @@ export const GeminiIntegration: React.FC<GeminiIntegrationProps> = ({
           </TabsContent>
 
           <TabsContent value="analysis" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Button
                 onClick={analyzeSchema}
                 disabled={!apiKey || isLoading || schema.tables.length === 0}
@@ -583,7 +642,7 @@ export const GeminiIntegration: React.FC<GeminiIntegrationProps> = ({
                 ) : (
                   <BarChart3 className="h-4 w-4 mr-2" />
                 )}
-                Analyser le schéma complet
+                Analyser le Schéma
               </Button>
 
               <Button
@@ -597,26 +656,40 @@ export const GeminiIntegration: React.FC<GeminiIntegrationProps> = ({
                 ) : (
                   <AlertCircle className="h-4 w-4 mr-2" />
                 )}
-                Valider & Diagnostiquer
+                Diagnostic Complet
+              </Button>
+
+              <Button
+                onClick={improveTable}
+                disabled={!apiKey || !activeTable || isLoading}
+                variant="outline"
+                className="border-blue-200 hover:bg-blue-50"
+              >
+                {isLoading ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Wand2 className="h-4 w-4 mr-2" />
+                )}
+                Améliorer Table Active
               </Button>
             </div>
 
             {validationResult && (
               <Card className="border-l-4 border-l-blue-500">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-lg">Résultat de validation</CardTitle>
+                  <CardTitle className="text-lg">Résultat du Diagnostic</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
                       <Badge variant={validationResult.isValid ? "default" : "destructive"}>
-                        {validationResult.isValid ? "✓ Valide" : "✗ Erreurs détectées"}
+                        {validationResult.isValid ? "✓ Schéma Valide" : "✗ Erreurs Détectées"}
                       </Badge>
                     </div>
                     
                     {validationResult.errors.length > 0 && (
                       <div>
-                        <h4 className="font-medium text-red-800 mb-2">Erreurs critiques :</h4>
+                        <h4 className="font-medium text-red-800 mb-2">Erreurs Critiques :</h4>
                         <ul className="list-disc list-inside space-y-1 text-sm text-red-700">
                           {validationResult.errors.map((error: string, idx: number) => (
                             <li key={idx}>{error}</li>
@@ -641,42 +714,136 @@ export const GeminiIntegration: React.FC<GeminiIntegrationProps> = ({
             )}
           </TabsContent>
 
-          <TabsContent value="generation" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Button
-                onClick={improveTable}
-                disabled={!apiKey || !activeTable || isLoading}
-                variant="outline"
-                className="border-blue-200 hover:bg-blue-50"
-              >
-                {isLoading ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Wand2 className="h-4 w-4 mr-2" />
-                )}
-                Améliorer la table active
-              </Button>
+          <TabsContent value="suggestions" className="space-y-6">
+            {pendingSuggestions.length > 0 ? (
+              <>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-slate-800">
+                    Suggestions en attente ({pendingSuggestions.filter(s => s.selected).length}/{pendingSuggestions.length} sélectionnées)
+                  </h3>
+                  <div className="flex gap-2">
+                    <Button onClick={selectAllSuggestions} size="sm" variant="outline">
+                      Tout sélectionner
+                    </Button>
+                    <Button onClick={deselectAllSuggestions} size="sm" variant="outline">
+                      Tout désélectionner
+                    </Button>
+                  </div>
+                </div>
 
-              <Button
-                onClick={generateFields}
-                disabled={!apiKey || !activeTable || !context.trim() || isLoading}
-                variant="outline"
-                className="border-green-200 hover:bg-green-50"
-              >
-                {isLoading ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Plus className="h-4 w-4 mr-2" />
-                )}
-                Générer champs manquants
-              </Button>
-            </div>
+                <div className="space-y-3">
+                  {pendingSuggestions.map((suggestion) => {
+                    const IconComponent = getSuggestionIcon(suggestion.type);
+                    return (
+                      <Card key={suggestion.id} className={`border-slate-200 ${suggestion.selected ? 'bg-blue-50 border-blue-300' : ''}`}>
+                        <CardContent className="p-4">
+                          <div className="flex items-start gap-3">
+                            <Checkbox
+                              checked={suggestion.selected}
+                              onCheckedChange={() => toggleSuggestionSelection(suggestion.id)}
+                              className="mt-1"
+                            />
+                            <div className="bg-purple-100 p-2 rounded-lg">
+                              <IconComponent className="h-4 w-4 text-purple-600" />
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2 flex-wrap">
+                                <h4 className="font-medium text-slate-800">
+                                  {suggestion.title}
+                                </h4>
+                                <Badge variant="outline" className="text-xs">
+                                  {suggestion.type}
+                                </Badge>
+                                {suggestion.category && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    {suggestion.category}
+                                  </Badge>
+                                )}
+                                <Badge 
+                                  className={`text-xs ${getConfidenceColor(suggestion.confidence)}`}
+                                >
+                                  {Math.round(suggestion.confidence * 100)}%
+                                </Badge>
+                                {suggestion.impact && (
+                                  <Badge 
+                                    className={`text-xs ${getImpactColor(suggestion.impact)}`}
+                                  >
+                                    {suggestion.impact}
+                                  </Badge>
+                                )}
+                                <Button
+                                  onClick={() => toggleSuggestionExpansion(suggestion.id)}
+                                  size="sm"
+                                  variant="ghost"
+                                  className="p-1 h-6 w-6"
+                                >
+                                  {suggestion.expanded ? (
+                                    <ChevronUp className="h-4 w-4" />
+                                  ) : (
+                                    <ChevronDown className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              </div>
+                              <p className="text-sm text-slate-600">
+                                {suggestion.description}
+                              </p>
+                              {suggestion.expanded && suggestion.implementation && (
+                                <div className="mt-3 p-3 bg-gray-100 rounded text-xs">
+                                  <pre>{JSON.stringify(suggestion.implementation, null, 2)}</pre>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+
+                <div className="flex gap-4">
+                  <Button
+                    onClick={applySelectedSuggestions}
+                    disabled={pendingSuggestions.filter(s => s.selected).length === 0}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    <Check className="h-4 w-4 mr-2" />
+                    Appliquer Sélectionnées ({pendingSuggestions.filter(s => s.selected).length})
+                  </Button>
+                  <Button
+                    onClick={discardSelectedSuggestions}
+                    disabled={pendingSuggestions.filter(s => s.selected).length === 0}
+                    variant="destructive"
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    Supprimer Sélectionnées
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-12 text-slate-500">
+                <Lightbulb className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>Aucune suggestion en attente</p>
+                <p className="text-sm">Utilisez l'onglet "Analyse Schéma" pour générer des suggestions</p>
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="content" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="record-count">Nombre d'enregistrements</Label>
+                <Label>Mode de génération</Label>
+                <Select value={contentGenerationMode} onValueChange={(value: 'table' | 'global') => setContentGenerationMode(value)}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="table">Table active uniquement</SelectItem>
+                    <SelectItem value="global">Toutes les tables du schéma</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="record-count">Nombre d'enregistrements par table</Label>
                 <Input
                   id="record-count"
                   type="number"
@@ -687,8 +854,11 @@ export const GeminiIntegration: React.FC<GeminiIntegrationProps> = ({
                   className="mt-1"
                 />
               </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="data-language">Langue</Label>
+                <Label htmlFor="data-language">Langue du contenu</Label>
                 <Select value={dataLanguage} onValueChange={setDataLanguage}>
                   <SelectTrigger className="mt-1">
                     <SelectValue />
@@ -702,7 +872,7 @@ export const GeminiIntegration: React.FC<GeminiIntegrationProps> = ({
                 </Select>
               </div>
               <div>
-                <Label htmlFor="data-style">Style</Label>
+                <Label htmlFor="data-style">Style du contenu</Label>
                 <Select value={dataStyle} onValueChange={setDataStyle}>
                   <SelectTrigger className="mt-1">
                     <SelectValue />
@@ -719,7 +889,7 @@ export const GeminiIntegration: React.FC<GeminiIntegrationProps> = ({
 
             <Button
               onClick={generateSampleData}
-              disabled={!apiKey || !activeTable || isLoading}
+              disabled={!apiKey || isLoading || (contentGenerationMode === 'table' && !activeTable)}
               className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
             >
               {isLoading ? (
@@ -727,13 +897,13 @@ export const GeminiIntegration: React.FC<GeminiIntegrationProps> = ({
               ) : (
                 <Database className="h-4 w-4 mr-2" />
               )}
-              Générer données d'exemple contextuelles
+              Générer du contenu {contentGenerationMode === 'global' ? 'pour toutes les tables' : 'pour la table active'}
             </Button>
 
             {generatedData && (
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
-                  <CardTitle className="text-lg">Données générées</CardTitle>
+                  <CardTitle className="text-lg">Contenu généré</CardTitle>
                   <div className="flex gap-2">
                     <Button
                       onClick={downloadGeneratedData}
@@ -748,7 +918,7 @@ export const GeminiIntegration: React.FC<GeminiIntegrationProps> = ({
                 <CardContent>
                   <div className="space-y-3">
                     <div className="flex items-center justify-between text-sm">
-                      <span>Enregistrements générés : <strong>{generatedData.metadata.generated_count}</strong></span>
+                      <span>Enregistrements : <strong>{generatedData.metadata.generated_count}</strong></span>
                       <span>Contexte : <strong>{generatedData.metadata.context_applied}</strong></span>
                     </div>
                     
@@ -774,11 +944,14 @@ export const GeminiIntegration: React.FC<GeminiIntegrationProps> = ({
                 placeholder="développement web, react, javascript, formation"
                 className="mt-1"
               />
+              <p className="text-xs text-slate-500 mt-1">
+                Les optimisations SEO seront générées pour {activeTable ? `la table "${activeTable.name}"` : 'toutes les tables'}
+              </p>
             </div>
 
             <Button
               onClick={optimizeForSEO}
-              disabled={!apiKey || !activeTable || !seoKeywords.trim() || isLoading}
+              disabled={!apiKey || !seoKeywords.trim() || isLoading}
               className="w-full bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700"
             >
               {isLoading ? (
@@ -786,7 +959,7 @@ export const GeminiIntegration: React.FC<GeminiIntegrationProps> = ({
               ) : (
                 <SearchCheck className="h-4 w-4 mr-2" />
               )}
-              Optimiser pour le SEO
+              Générer optimisations SEO
             </Button>
           </TabsContent>
 
@@ -801,7 +974,7 @@ export const GeminiIntegration: React.FC<GeminiIntegrationProps> = ({
               ) : (
                 <BookOpen className="h-4 w-4 mr-2" />
               )}
-              Générer documentation technique
+              Générer documentation technique complète
             </Button>
 
             {documentation && (
@@ -819,74 +992,7 @@ export const GeminiIntegration: React.FC<GeminiIntegrationProps> = ({
           </TabsContent>
         </Tabs>
 
-        {/* Suggestions Section */}
-        {suggestions.length > 0 && (
-          <div className="mt-8 space-y-4">
-            <h3 className="font-semibold text-slate-800 flex items-center gap-2">
-              <Lightbulb className="h-5 w-5" />
-              Suggestions d'amélioration ({suggestions.length})
-            </h3>
-            
-            <div className="space-y-3">
-              {suggestions.map((suggestion, index) => {
-                const IconComponent = getSuggestionIcon(suggestion.type);
-                return (
-                  <Card key={index} className="border-slate-200">
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-start gap-3 flex-1">
-                          <div className="bg-purple-100 p-2 rounded-lg">
-                            <IconComponent className="h-4 w-4 text-purple-600" />
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2 flex-wrap">
-                              <h4 className="font-medium text-slate-800">
-                                {suggestion.title}
-                              </h4>
-                              <Badge variant="outline" className="text-xs">
-                                {suggestion.type}
-                              </Badge>
-                              {suggestion.category && (
-                                <Badge variant="secondary" className="text-xs">
-                                  {suggestion.category}
-                                </Badge>
-                              )}
-                              <Badge 
-                                className={`text-xs ${getConfidenceColor(suggestion.confidence)}`}
-                              >
-                                {Math.round(suggestion.confidence * 100)}%
-                              </Badge>
-                              {suggestion.impact && (
-                                <Badge 
-                                  className={`text-xs ${getImpactColor(suggestion.impact)}`}
-                                >
-                                  {suggestion.impact}
-                                </Badge>
-                              )}
-                            </div>
-                            <p className="text-sm text-slate-600">
-                              {suggestion.description}
-                            </p>
-                          </div>
-                        </div>
-                        <Button
-                          onClick={() => applySuggestion(suggestion)}
-                          size="sm"
-                          variant="outline"
-                          className="ml-3"
-                        >
-                          Appliquer
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Statistics */}
+        {/* Statistiques */}
         <div className="mt-8 grid grid-cols-2 md:grid-cols-5 gap-4 p-4 bg-gradient-to-r from-slate-50 to-gray-50 rounded-lg">
           <div className="text-center">
             <div className="text-2xl font-bold text-slate-800">
@@ -902,13 +1008,13 @@ export const GeminiIntegration: React.FC<GeminiIntegrationProps> = ({
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-slate-800">
-              {suggestions.length}
+              {pendingSuggestions.length}
             </div>
             <div className="text-xs text-slate-600">Suggestions</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-purple-600">
-              {suggestions.filter(s => s.confidence >= 0.8).length}
+              {pendingSuggestions.filter(s => s.confidence >= 0.8).length}
             </div>
             <div className="text-xs text-slate-600">Haute confiance</div>
           </div>
