@@ -82,7 +82,6 @@ const Index = () => {
 
   const handleApplyPreset = (preset: Schema) => {
     if (isMultiSelectMode && selectedPresets.length > 1) {
-      // Multiple presets are being merged
       setSchema(preset);
       setSelectedPresets([]);
       setIsMultiSelectMode(false);
@@ -92,7 +91,6 @@ const Index = () => {
         description: `${selectedPresets.length} presets ont été fusionnés avec succès.`,
       });
     } else {
-      // Single preset application
       setSchema(preset);
       
       if (preset.tables.length > 0) {
@@ -141,7 +139,6 @@ const Index = () => {
       try {
         const importedSchema = JSON.parse(e.target?.result as string);
         
-        // Validate schema structure
         if (!importedSchema.tables || !Array.isArray(importedSchema.tables)) {
           throw new Error("Structure de schéma invalide");
         }
@@ -166,7 +163,6 @@ const Index = () => {
     };
     reader.readAsText(file);
     
-    // Reset input
     event.target.value = '';
   };
 
@@ -255,7 +251,7 @@ const Index = () => {
                 </CardHeader>
                 <CardContent>
                   <TableEditor
-                    schema={schema}
+                    tables={schema.tables}
                     activeTable={activeTable}
                     onTableSelect={setActiveTable}
                     onTableUpdate={updateTable}
@@ -280,8 +276,8 @@ const Index = () => {
                 <CardContent>
                   {activeTable ? (
                     <FieldEditor
-                      table={activeTable}
-                      onTableUpdate={updateTable}
+                      fields={activeTable.fields}
+                      onFieldsUpdate={(fields) => updateTable({ ...activeTable, fields })}
                     />
                   ) : (
                     <div className="text-center py-12 text-slate-500">
@@ -315,13 +311,17 @@ const Index = () => {
           <TabsContent value="generator">
             <ArtifactGenerator
               schema={schema}
-              onArtifactsGenerated={setGeneratedArtifacts}
+              onGenerate={setGeneratedArtifacts}
             />
           </TabsContent>
 
           <TabsContent value="artifacts">
             {generatedArtifacts ? (
-              <ArtifactViewer artifacts={generatedArtifacts} />
+              <ArtifactViewer 
+                artifacts={generatedArtifacts} 
+                tableName={schema.name}
+                onClose={() => setGeneratedArtifacts(null)}
+              />
             ) : (
               <Card>
                 <CardContent className="text-center py-12">
