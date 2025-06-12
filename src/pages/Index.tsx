@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -165,6 +164,12 @@ const Index = () => {
     event.target.value = '';
   };
 
+  const handleGenerateArtifacts = (table: Table) => {
+    // For now, we'll just set a placeholder - this should be implemented properly
+    // when the TableEditor actually calls this function
+    console.log('Generating artifacts for table:', table.name);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -298,7 +303,7 @@ const Index = () => {
                       table={activeTable}
                       onUpdate={updateTable}
                       onDelete={() => deleteTable(activeTable.id)}
-                      onGenerateArtifacts={setGeneratedArtifacts}
+                      onGenerateArtifacts={handleGenerateArtifacts}
                     />
                   ) : (
                     <div className="text-center py-12 text-slate-500">
