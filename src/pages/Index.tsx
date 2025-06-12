@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,7 +10,7 @@ import {
 import { Schema, Table, GeneratedArtifacts } from '@/types/schema';
 import { TableEditor } from '@/components/TableEditor';
 import { FieldEditor } from '@/components/FieldEditor';
-import { ArtifactGenerator } from '@/components/ArtifactGenerator';
+import { ArtifactGeneratorComponent } from '@/components/ArtifactGeneratorComponent';
 import { ArtifactViewer } from '@/components/ArtifactViewer';
 import { SchemaPresets } from '@/components/SchemaPresets';
 import { GeminiIntegration } from '@/components/GeminiIntegration';
@@ -250,14 +249,34 @@ const Index = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <TableEditor
-                    tables={schema.tables}
-                    activeTable={activeTable}
-                    onTableSelect={setActiveTable}
-                    onTableUpdate={updateTable}
-                    onTableDelete={deleteTable}
-                    onAddTable={addTable}
-                  />
+                  <div className="space-y-2">
+                    {schema.tables.map((table) => (
+                      <div
+                        key={table.id}
+                        onClick={() => setActiveTable(table)}
+                        className={`p-3 border rounded cursor-pointer transition-colors ${
+                          activeTable?.id === table.id 
+                            ? 'bg-blue-50 border-blue-200' 
+                            : 'hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h4 className="font-medium">{table.name}</h4>
+                            <p className="text-sm text-slate-600">{table.description}</p>
+                          </div>
+                          <Badge variant="outline">{table.fields.length}</Badge>
+                        </div>
+                      </div>
+                    ))}
+                    
+                    {schema.tables.length === 0 && (
+                      <div className="text-center py-8 text-slate-500">
+                        <Database className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                        <p>Aucune table. Cliquez sur "Nouvelle Table" pour commencer.</p>
+                      </div>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
 
@@ -309,7 +328,7 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="generator">
-            <ArtifactGenerator
+            <ArtifactGeneratorComponent
               schema={schema}
               onGenerate={setGeneratedArtifacts}
             />
