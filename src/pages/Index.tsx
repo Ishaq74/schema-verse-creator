@@ -8,7 +8,6 @@ import {
   Plus, Settings, BookOpen, Upload
 } from 'lucide-react';
 import { Schema, Table, GeneratedArtifacts } from '@/types/schema';
-import { TableEditor } from '@/components/TableEditor';
 import { FieldEditor } from '@/components/FieldEditor';
 import { ArtifactGeneratorComponent } from '@/components/ArtifactGeneratorComponent';
 import { ArtifactViewer } from '@/components/ArtifactViewer';
@@ -295,8 +294,8 @@ const Index = () => {
                 <CardContent>
                   {activeTable ? (
                     <FieldEditor
-                      fields={activeTable.fields}
-                      onFieldsUpdate={(fields) => updateTable({ ...activeTable, fields })}
+                      table={activeTable}
+                      onTableUpdate={updateTable}
                     />
                   ) : (
                     <div className="text-center py-12 text-slate-500">
