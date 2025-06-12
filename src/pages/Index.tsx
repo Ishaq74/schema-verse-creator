@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,7 +9,7 @@ import {
   Plus, Settings, BookOpen, Upload
 } from 'lucide-react';
 import { Schema, Table, GeneratedArtifacts } from '@/types/schema';
-import { FieldEditor } from '@/components/FieldEditor';
+import { TableEditor } from '@/components/TableEditor';
 import { ArtifactGeneratorComponent } from '@/components/ArtifactGeneratorComponent';
 import { ArtifactViewer } from '@/components/ArtifactViewer';
 import { SchemaPresets } from '@/components/SchemaPresets';
@@ -279,11 +280,11 @@ const Index = () => {
                 </CardContent>
               </Card>
 
-              {/* Field Editor */}
+              {/* Table Editor */}
               <Card className="lg:col-span-2">
                 <CardHeader>
                   <CardTitle>
-                    {activeTable ? `Champs de ${activeTable.name}` : 'Sélectionnez une table'}
+                    {activeTable ? `Édition de ${activeTable.name}` : 'Sélectionnez une table'}
                   </CardTitle>
                   {activeTable && (
                     <p className="text-sm text-slate-600">
@@ -293,9 +294,11 @@ const Index = () => {
                 </CardHeader>
                 <CardContent>
                   {activeTable ? (
-                    <FieldEditor
+                    <TableEditor
                       table={activeTable}
-                      onTableUpdate={updateTable}
+                      onUpdate={updateTable}
+                      onDelete={() => deleteTable(activeTable.id)}
+                      onGenerateArtifacts={setGeneratedArtifacts}
                     />
                   ) : (
                     <div className="text-center py-12 text-slate-500">
