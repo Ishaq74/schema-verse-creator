@@ -8,7 +8,7 @@ export interface Field {
   unique: boolean;
   primary_key: boolean;
   foreign_key?: string;
-  relation_cardinality?: '1-1' | '1-N' | 'N-N';
+  relation_cardinality?: '1-1' | '1-N' | 'N-1' | 'N-N';
   enum_values?: string[];
   description: string;
   example_value: string;
