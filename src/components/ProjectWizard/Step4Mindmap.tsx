@@ -131,7 +131,7 @@ export default function Step4Mindmap({
     if (!tb) return;
     const field = {
       name,
-      type_general: "string",
+      type_general: "string" as "string", // Correction ici : forcer le type validé
       type_sql: "VARCHAR(255)",
       required: false,
       unique: false,
