@@ -4,32 +4,17 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Folder, Network, Download } from "lucide-react";
-import { Project } from "@/types/project";
+import { useProjects } from "@/contexts/ProjectContext";
 
-// Temp: simple in-memory store, amélioré plus tard !
-const mockProjects: Project[] = [
-  {
-    id: "1",
-    name: "Mon Site Vitrine",
-    description: "Site vitrine pour PME locale avec blog.",
-    modules: [],
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: "2",
-    name: "SAAS Gestion",
-    description: "Plateforme SaaS (Users, Organisations, Factures).",
-    modules: [],
-    createdAt: new Date().toISOString(),
-  },
-];
+// Plus de mockProjects ici
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { projects } = useProjects();
 
   // Chercher le projet correspondant :
-  const project = mockProjects.find(p => p.id === id);
+  const project = projects.find(p => p.id === id);
 
   if (!project) {
     return (
@@ -87,4 +72,3 @@ export default function ProjectDetail() {
     </div>
   );
 }
-

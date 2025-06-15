@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import { moduleCatalogue, BaseModule } from "@/modules/catalogue";
+import { useProjects } from "@/contexts/ProjectContext";
 
 // On supprime le type redéfini ici (conflit import)
 export default function NewProject() {
@@ -15,6 +16,7 @@ export default function NewProject() {
     moduleCatalogue.filter(m => m.required).map(m => m.id)
   );
   const navigate = useNavigate();
+  const { addProject } = useProjects();
 
   const handleModuleToggle = (id: string) => {
     if (moduleCatalogue.find(m => m.id === id)?.required) return;
@@ -27,7 +29,23 @@ export default function NewProject() {
   const handleBack = () => setStep(s => s - 1);
 
   const handleCreate = () => {
-    // TODO IN STEP 3+: sauvegarde et IA
+    // Modules avec tous les champs requis par le type "Module"
+    const modulesForProject = moduleCatalogue
+      .filter(m => selectedModules.includes(m.id))
+      .map(m => ({
+        id: m.id,
+        name: m.name,
+        description: m.description,
+        tables: [],
+        icon: undefined,
+      }));
+    addProject({
+      id: crypto.randomUUID(),
+      name,
+      description: desc,
+      modules: modulesForProject,
+      createdAt: new Date().toISOString(),
+    });
     navigate("/");
   };
 
