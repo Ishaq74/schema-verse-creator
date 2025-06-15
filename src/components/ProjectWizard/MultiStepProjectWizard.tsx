@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import Step1Identity from "./Step1Identity";
 import Step2Modules from "./Step2Modules";
@@ -52,6 +51,20 @@ export default function MultiStepProjectWizard() {
   React.useEffect(() => {
     setSchema(buildSchemaFromModules(selectedModules));
   }, [selectedModules, name, description, need]);
+
+  // Cette fonction met à jour UNE table dans le schéma courant
+  function handleTableUpdate(updatedTable: Table) {
+    if (!schema) return;
+    setSchema({
+      ...schema,
+      tables: schema.tables.map(t => t.id === updatedTable.id ? updatedTable : t)
+    });
+  }
+
+  // Cette fonction met à jour tout le schéma (suite suggestion IA)
+  function handleSchemaUpdate(newSchema: Schema) {
+    setSchema(newSchema);
+  }
 
   const goNext = () => setStep(s => s + 1);
   const goBack = () => setStep(s => s - 1);
@@ -117,11 +130,14 @@ export default function MultiStepProjectWizard() {
             onNext={goNext}
           />
         )}
-        {step === 2 && (
+        {step === 2 && schema && (
           <Step3IAAnalysis
             selectedModules={selectedModules}
+            schema={schema}
             onBack={goBack}
             onNext={goNext}
+            onUpdateSchema={handleSchemaUpdate}
+            onUpdateTable={handleTableUpdate}
           />
         )}
         {step === 3 && (
