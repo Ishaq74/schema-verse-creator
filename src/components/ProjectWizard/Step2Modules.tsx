@@ -60,9 +60,12 @@ export default function Step2Modules({
 }: Step2ModulesProps) {
   const toggle = (id: string, required?: boolean) => {
     if (required) return;
-    setSelected(ids =>
-      ids.includes(id) ? ids.filter(d => d !== id) : [...ids, id]
-    );
+    // Fix: Create the new array directly and pass it.
+    if (selected.includes(id)) {
+      setSelected(selected.filter(d => d !== id));
+    } else {
+      setSelected([...selected, id]);
+    }
   };
   return (
     <div>
