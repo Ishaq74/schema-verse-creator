@@ -61,6 +61,9 @@ export default function Step4Mindmap({
   const [allTableContent, setAllTableContent] = useState<Record<string, any[]>>({});
   const [showAllContentPanel, setShowAllContentPanel] = useState(false);
 
+  // 🆕 Nouveau : Nombre d’exemples à générer pour le batch IA (par défaut 10)
+  const [batchRecordCount, setBatchRecordCount] = useState<number>(10);
+
   // Pour édition interactive (drag & drop) => Simple, on gère sur selectedModuleIds directement
   function handleModulesReorder(fromIdx: number, toIdx: number) {
     if (!onModulesUpdate) return;
@@ -325,7 +328,7 @@ export default function Step4Mindmap({
       toast({ title: "Clé API Gemini requise", description: "Configurer ta clé Gemini pour générer du contenu.", variant: "destructive" });
       return;
     }
-    const recordCount = 10; // Peut être rendu customizable
+    const recordCount = batchRecordCount; // 🆕 Version personnalisée
     setLoading(true);
     try {
       const gemini = new GeminiService({ apiKey });
@@ -381,16 +384,32 @@ export default function Step4Mindmap({
           onExport={handleExport}
           loading={loading}
         />
-        {/* Boutons batch IA juste en-dessous du toolbar */}
-        <Button
-          size="sm"
-          variant="default"
-          className="my-2"
-          onClick={handleGenerateAllContent}
-          disabled={loading || !schema?.tables?.length}
-        >
-          Générer tout le contenu IA
-        </Button>
+        {/* 🆕 Ajout sélecteur batchRecordCount à côté du bouton “Générer tout le contenu IA” */}
+        <div className="flex items-center gap-2 my-2">
+          <label htmlFor="batch-recordcount" className="text-xs text-slate-600">
+            Nb d'exemples / table :
+          </label>
+          <input
+            id="batch-recordcount"
+            type="number"
+            min={1}
+            max={100}
+            className="border px-2 rounded text-xs w-16"
+            value={batchRecordCount}
+            onChange={e => setBatchRecordCount(Number(e.target.value) || 10)}
+            disabled={loading}
+            title="Nombre d'exemples à générer par table (batch)"
+          />
+          <Button
+            size="sm"
+            variant="default"
+            className="my-2"
+            onClick={handleGenerateAllContent}
+            disabled={loading || !schema?.tables?.length}
+          >
+            Générer tout le contenu IA
+          </Button>
+        </div>
         <Button
           size="sm"
           variant="outline"
