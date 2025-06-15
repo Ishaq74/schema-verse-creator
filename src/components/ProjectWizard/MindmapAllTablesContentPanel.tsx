@@ -2,7 +2,7 @@
 import React from "react";
 import { Table } from "@/types/schema";
 import { Button } from "@/components/ui/button";
-import { Download, Trash2, Loader2 } from "lucide-react";
+import { Download, Trash2 } from "lucide-react";
 
 interface MindmapAllTablesContentPanelProps {
   open: boolean;
@@ -12,6 +12,7 @@ interface MindmapAllTablesContentPanelProps {
   loading: boolean;
   onContentClear: (tableId: string) => void;
   onExportAll: () => void;
+  previewPerTable?: number;
 }
 
 export default function MindmapAllTablesContentPanel({
@@ -22,6 +23,7 @@ export default function MindmapAllTablesContentPanel({
   loading,
   onContentClear,
   onExportAll,
+  previewPerTable = 3,
 }: MindmapAllTablesContentPanelProps) {
   if (!open) return null;
   return (
@@ -53,9 +55,9 @@ export default function MindmapAllTablesContentPanel({
               {tableContents[tb.id]?.length ? (
                 <div className="max-h-40 overflow-y-auto bg-white border p-2 rounded font-mono text-xxs">
                   <pre>
-                    {JSON.stringify(tableContents[tb.id].slice(0, 3), null, 2)}
-                    {tableContents[tb.id].length > 3 &&
-                      `\n... (+${tableContents[tb.id].length - 3} lignes)`}
+                    {JSON.stringify(tableContents[tb.id].slice(0, previewPerTable), null, 2)}
+                    {tableContents[tb.id].length > previewPerTable &&
+                      `\n... (+${tableContents[tb.id].length - previewPerTable} lignes)`}
                   </pre>
                 </div>
               ) : (
