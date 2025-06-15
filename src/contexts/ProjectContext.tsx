@@ -16,6 +16,12 @@ const initialProjects: Project[] = [
     description: "Site vitrine pour PME locale avec blog.",
     modules: [],
     createdAt: new Date().toISOString(),
+    schema: {
+      tables: [],
+      name: "Schéma vide",
+      description: "Schéma initial par défaut",
+      version: "1.0",
+    },
   },
   {
     id: "2",
@@ -23,6 +29,12 @@ const initialProjects: Project[] = [
     description: "Plateforme SaaS (Users, Organisations, Factures).",
     modules: [],
     createdAt: new Date().toISOString(),
+    schema: {
+      tables: [],
+      name: "Schéma vide",
+      description: "Schéma initial par défaut",
+      version: "1.0",
+    },
   },
 ];
 

@@ -22,6 +22,12 @@ export default function Dashboard() {
       description: newProjectDesc,
       modules: [],
       createdAt: new Date().toISOString(),
+      schema: {
+        tables: [],
+        name: "Schéma vide",
+        description: "Schéma initial par défaut",
+        version: "1.0",
+      },
     };
     addProject(newProj);
     setNewProjectName('');
