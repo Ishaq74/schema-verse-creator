@@ -1,11 +1,13 @@
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { moduleCatalogue } from "@/modules/catalogue";
 import { baseModulesSchema } from "@/modules/baseModulesSchema";
-import type { Schema } from "@/types/schema";
+import type { Table, Schema } from "@/types/schema";
+import MindmapNode from "./MindmapNode";
+import { GeminiService } from "@/services/GeminiService";
+import { toast } from "@/hooks/use-toast";
 
-// Utilitaire mindmap (arbre simple)
 function buildMindmapData(modules, schema) {
   return modules.map(mod => ({
     ...mod,
@@ -16,41 +18,12 @@ function buildMindmapData(modules, schema) {
   }));
 }
 
-// Visuel très simple, chaque module en tant que noeud racine, ses tables reliées
-function Mindmap({ mindmap }) {
-  return (
-    <div className="flex flex-wrap justify-center gap-7 my-5">
-      {mindmap.map(mod => (
-        <div className="bg-gradient-to-tl from-slate-50 to-blue-50 border px-4 py-3 rounded-lg shadow w-[270px] max-w-full" key={mod.id}>
-          <div className="font-bold text-blue-700">{mod.name}</div>
-          <div className="text-xs mb-2 text-slate-500">Module: {mod.id}</div>
-          <ul className="ml-2 pl-2 border-l-2 border-blue-200">
-            {mod.tables.map(tb => (
-              <li key={tb.id} className="mt-2">
-                <div className="px-2 py-1 rounded text-sm font-semibold bg-blue-100 text-blue-900">
-                  {tb.name}
-                </div>
-                <ul className="ml-3 pl-1 border-l border-slate-200 text-xs mt-1">
-                  {tb.fields.map(f => (
-                    <li key={f.name} className="mb-0.5 flex items-center gap-1">
-                      <span className="rounded px-1 py-0.5 bg-slate-50 border text-slate-700">{f.name}</span>
-                    </li>
-                  ))}
-                </ul>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 interface Step4MindmapProps {
   selectedModuleIds: string[];
   onBack: () => void;
   onNext: () => void;
   schema?: Schema;
+  onTableUpdate?: (tb: Table) => void;
 }
 
 export default function Step4Mindmap({
@@ -58,6 +31,7 @@ export default function Step4Mindmap({
   onBack,
   onNext,
   schema,
+  onTableUpdate
 }: Step4MindmapProps) {
   // Construction data mindmap enrichie
   const modules = useMemo(() => [
@@ -72,7 +46,10 @@ export default function Step4Mindmap({
     [modules, schema]
   );
 
-  // Export (json et csv simplifié)
+  // Suivi de l’analyse IA en cours pour chaque table
+  const [enhancingTableId, setEnhancingTableId] = useState<string | null>(null);
+
+  // Export (json et csv simplifié, doc markdown en bonus !)
   const handleExportJSON = () => {
     const dataStr = JSON.stringify(schema, null, 2);
     const blob = new Blob([dataStr], { type: "application/json" });
@@ -104,6 +81,54 @@ export default function Step4Mindmap({
     URL.revokeObjectURL(url);
   };
 
+  const handleExportMarkdown = async () => {
+    if (!schema) return;
+    try {
+      const apiKey = GeminiService.getStoredApiKey();
+      if (!apiKey) {
+        toast({
+          title: "API Gemini requise",
+          description: "Tu dois fournir ta clé API Gemini pour la documentation markdown.",
+          variant: "destructive"
+        });
+        return;
+      }
+      const gemini = new GeminiService({ apiKey });
+      toast({ title: "Génération documentation", description: "Patiente…", variant: "default" });
+      const md = await gemini.generateDocumentation(schema);
+      const blob = new Blob([md], { type: "text/markdown" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "documentation_mindmap.md";
+      a.click();
+      URL.revokeObjectURL(url);
+      toast({ title: "Documentation générée !", variant: "success" });
+    } catch (e) {
+      toast({ title: "Erreur GEMINI", description: String(e), variant: "destructive" });
+    }
+  };
+
+  // Amélioration IA d’une seule table (appel Gemini + MAJ)
+  const handleEnhanceTableByIA = async (tb: Table) => {
+    const apiKey = GeminiService.getStoredApiKey();
+    if (!apiKey) {
+      toast({ title: "Clé API Gemini requise", description: "Configure ta clé Gemini pour la génération.", variant: "destructive" });
+      return;
+    }
+    setEnhancingTableId(tb.id);
+    try {
+      const gemini = new GeminiService({ apiKey });
+      const tableOptimisee = await gemini.improveTable(tb);
+      if (onTableUpdate) onTableUpdate(tableOptimisee);
+      toast({ title: "Table IA OK !", description: `La table ${tb.name} est enrichie.`, variant: "success" });
+    } catch (e) {
+      toast({ title: "Erreur GEMINI", description: String(e), variant: "destructive" });
+    } finally {
+      setEnhancingTableId(null);
+    }
+  };
+
   return (
     <div>
       <div className="flex flex-col md:flex-row gap-4 items-center justify-between mb-5">
@@ -114,15 +139,37 @@ export default function Step4Mindmap({
           <Button size="sm" variant="outline" onClick={handleExportCSV}>
             Exporter Mindmap CSV
           </Button>
+          <Button size="sm" variant="secondary" onClick={handleExportMarkdown}>
+            Documentation Markdown (IA)
+          </Button>
         </div>
       </div>
-      <Mindmap mindmap={mindmap} />
+      <div className="flex flex-wrap justify-center gap-7 my-5">
+        {mindmap.map(mod => (
+          <div className="bg-gradient-to-tl from-slate-50 to-blue-50 border px-4 py-3 rounded-lg shadow w-[270px] max-w-full" key={mod.id}>
+            <div className="font-bold text-blue-700">{mod.name}</div>
+            <div className="text-xs mb-2 text-slate-500">Module: {mod.id}</div>
+            <ul className="ml-2 pl-2 border-l-2 border-blue-200">
+              {mod.tables.map(tb => (
+                <li key={tb.id} className="mt-2">
+                  <MindmapNode
+                    table={tb}
+                    moduleName={mod.name}
+                    onEnhanceIA={handleEnhanceTableByIA}
+                    enhancementInProgress={enhancingTableId === tb.id}
+                  />
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
       <div className="flex justify-between mt-6">
         <Button variant="outline" onClick={onBack}>Retour</Button>
         <Button onClick={onNext}>Etape finale</Button>
       </div>
       <div className="text-xs text-center text-slate-400 mt-3">
-        (Mindmap enrichie, navigation et export réellement fonctionnels)
+        (Mindmap interactive, export complet, IA Gemini active sur chaque table)
       </div>
     </div>
   );

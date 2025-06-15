@@ -146,6 +146,7 @@ export default function MultiStepProjectWizard() {
             schema={schema}
             onBack={goBack}
             onNext={goNext}
+            onTableUpdate={handleTableUpdate}
           />
         )}
         {step === 4 && schema && (
