@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Plus, Folder } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -7,7 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { useProjects } from "@/contexts/ProjectContext";
 
 export default function Dashboard() {
-  const { projects } = useProjects();
+  const { projects, addProject } = useProjects();
   const [showForm, setShowForm] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectDesc, setNewProjectDesc] = useState('');
@@ -22,7 +23,7 @@ export default function Dashboard() {
       modules: [],
       createdAt: new Date().toISOString(),
     };
-    setProjects([newProj, ...projects]);
+    addProject(newProj);
     setNewProjectName('');
     setNewProjectDesc('');
     setShowForm(false);
@@ -65,3 +66,4 @@ export default function Dashboard() {
     </div>
   );
 }
+
