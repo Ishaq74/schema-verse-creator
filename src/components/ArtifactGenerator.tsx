@@ -1,12 +1,37 @@
-
 import React from 'react';
 import { Table, Field, GeneratedArtifacts } from '@/types/schema';
 
 export class ArtifactGenerator {
-  static generateSQL(table: Table): string {
+  static generateSQL(table: Table, dialect: "postgres" | "sqlite" = "postgres"): string {
     const tableName = table.name;
     let sql = `-- Table: ${tableName}\n`;
     sql += `-- Description: ${table.description}\n\n`;
+
+    if (dialect === "sqlite") {
+      sql += `CREATE TABLE IF NOT EXISTS "${tableName}" (\n`;
+      const fieldDefinitions = table.fields.map(field => {
+        let def = `"${field.name}" ${field.type_sql}`;
+        if (field.primary_key) {
+          def += " PRIMARY KEY";
+        }
+        if (field.unique && !field.primary_key) {
+          def += " UNIQUE";
+        }
+        if (field.required && !field.primary_key) {
+          def += " NOT NULL";
+        }
+        return def;
+      });
+      sql += fieldDefinitions.join(",\n");
+      sql += "\n);\n";
+      // Ajoute les foreign keys à la suite
+      table.fields.forEach(field => {
+        if (field.foreign_key) {
+          sql += `-- FK: ${field.name} REFERENCES ${field.foreign_key}\n`;
+        }
+      });
+      return sql;
+    }
 
     // CREATE TABLE
     sql += `CREATE TABLE ${tableName} (\n`;

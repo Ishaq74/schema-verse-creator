@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import Step1Identity from "./Step1Identity";
 import Step2Modules from "./Step2Modules";
@@ -7,6 +6,8 @@ import Step4Mindmap from "./Step4Mindmap";
 import Step5Export from "./Step5Export";
 import { useProjects } from "@/contexts/ProjectContext";
 import { useNavigate } from "react-router-dom";
+import { baseModulesSchema } from "@/modules/baseModulesSchema";
+import { Schema, Table } from "@/types/schema";
 
 const STEPS = [
   "Identité",
@@ -25,6 +26,23 @@ export default function MultiStepProjectWizard() {
   const [selectedModules, setSelectedModules] = useState<string[]>(["base-identity", "users-advanced"]);
   const { addProject } = useProjects();
   const navigate = useNavigate();
+
+  // Helper : génère le schéma réel à partir des modules sélectionnés
+  function buildSchemaFromModules(selectedModuleIds: string[]): Schema {
+    let tables: Table[] = [];
+    selectedModuleIds.forEach(moduleId => {
+      if (baseModulesSchema[moduleId]) {
+        tables = [...tables, ...baseModulesSchema[moduleId]];
+      }
+      // autres modules custom ou à enrichir plus tard
+    });
+    return {
+      tables,
+      name: "Project Schema",
+      description: "Schéma auto-généré à partir des modules sélectionnés.",
+      version: "1.0",
+    };
+  }
 
   const goNext = () => setStep(s => s + 1);
   const goBack = () => setStep(s => s - 1);
