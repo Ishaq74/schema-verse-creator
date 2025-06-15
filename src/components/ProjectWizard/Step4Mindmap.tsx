@@ -373,14 +373,15 @@ export default function Step4Mindmap({
   return (
     <div className="flex flex-col md:flex-row gap-6">
       {/* Toolbar latérale */}
-      <MindmapToolbar
-        schema={schema!}
-        onGlobalEnhance={handleGlobalEnhanceIA}
-        onValidate={handleValidate}
-        onExport={handleExport}
-        loading={loading}
-      >
-        {/* Ajout bouton batch IA */}
+      <div className="flex flex-col gap-2 md:gap-4">
+        <MindmapToolbar
+          schema={schema!}
+          onGlobalEnhance={handleGlobalEnhanceIA}
+          onValidate={handleValidate}
+          onExport={handleExport}
+          loading={loading}
+        />
+        {/* Boutons batch IA juste en-dessous du toolbar */}
         <Button
           size="sm"
           variant="default"
@@ -398,7 +399,7 @@ export default function Step4Mindmap({
         >
           Voir contenu IA généré
         </Button>
-      </MindmapToolbar>
+      </div>
 
       {/* Mindmap principale */}
       <div className="flex-1">

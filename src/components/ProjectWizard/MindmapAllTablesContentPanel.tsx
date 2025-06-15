@@ -40,7 +40,7 @@ export default function MindmapAllTablesContentPanel({
                 <span className="font-medium text-blue-600">{tb.name}</span>
                 <span className="text-xs text-slate-400">({tb.id})</span>
                 <Button
-                  size="xs"
+                  size="sm"
                   variant="outline"
                   onClick={() => onContentClear(tb.id)}
                   disabled={loading}
