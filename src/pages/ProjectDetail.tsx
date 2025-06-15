@@ -3,7 +3,7 @@ import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Folder } from "lucide-react";
+import { Folder, Network, Download } from "lucide-react";
 import { Project } from "@/types/project";
 
 // Temp: simple in-memory store, amélioré plus tard !
@@ -67,12 +67,24 @@ export default function ProjectDetail() {
               <div className="text-slate-500">Aucun module associé (sera complété plus tard lors de la création IA).</div>
             )}
           </div>
-          <div className="flex justify-between mt-6">
-            <Button variant="outline" onClick={() => navigate(-1)}>Retour</Button>
-            {/* (Futur) Bouton : Générer la mindmap, Exporter, etc. */}
+          <div className="flex justify-between mt-6 gap-2 flex-col md:flex-row">
+            <Button variant="outline" onClick={() => navigate(-1)}>
+              Retour
+            </Button>
+            <div className="flex gap-2 justify-end">
+              <Button variant="ghost" className="border" title="Mindmap">
+                <Network className="w-4 h-4 mr-2" />
+                Générer la mindmap
+              </Button>
+              <Button variant="ghost" className="border" title="Exporter">
+                <Download className="w-4 h-4 mr-2" />
+                Exporter
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
     </div>
   );
 }
+
