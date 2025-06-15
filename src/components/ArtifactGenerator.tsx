@@ -336,9 +336,9 @@ ${table.fields.map(field =>
 `;
   }
 
-  static generateAll(table: Table): GeneratedArtifacts {
+  static generateAll(table: Table, dialect: "postgres" | "sqlite" = "postgres"): GeneratedArtifacts {
     return {
-      sql: this.generateSQL(table),
+      sql: this.generateSQL(table, dialect),
       astro_config: this.generateAstroConfig(table),
       acf_json: this.generateACFJSON(table),
       csv_data: this.generateCSV(table),

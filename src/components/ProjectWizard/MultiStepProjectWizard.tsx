@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import Step1Identity from "./Step1Identity";
 import Step2Modules from "./Step2Modules";
@@ -24,43 +25,52 @@ export default function MultiStepProjectWizard() {
   const [logo, setLogo] = useState<File | null>(null);
   const [need, setNeed] = useState("");
   const [selectedModules, setSelectedModules] = useState<string[]>(["base-identity", "users-advanced"]);
+  const [schema, setSchema] = useState<Schema | null>(null); // Schéma réel calculé
   const { addProject } = useProjects();
   const navigate = useNavigate();
 
-  // Helper : génère le schéma réel à partir des modules sélectionnés
+  // Génère le schéma réel à partir des modules sélectionnés
   function buildSchemaFromModules(selectedModuleIds: string[]): Schema {
     let tables: Table[] = [];
     selectedModuleIds.forEach(moduleId => {
       if (baseModulesSchema[moduleId]) {
         tables = [...tables, ...baseModulesSchema[moduleId]];
       }
-      // autres modules custom ou à enrichir plus tard
+      // Ajout d’autres modules custom ou à enrichir plus tard
     });
+    // Enlève les doublons de table (même id)
+    const uniqueTables = tables.filter((tb, idx, arr) => arr.findIndex(t => t.id === tb.id) === idx);
     return {
-      tables,
-      name: "Project Schema",
-      description: "Schéma auto-généré à partir des modules sélectionnés.",
+      tables: uniqueTables,
+      name: name || "Project Schema",
+      description: description || need || "Schéma généré à partir des modules.",
       version: "1.0",
     };
   }
+
+  // Mise à jour du schéma à chaque changement de modules ou métadonnées
+  React.useEffect(() => {
+    setSchema(buildSchemaFromModules(selectedModules));
+  }, [selectedModules, name, description, need]);
 
   const goNext = () => setStep(s => s + 1);
   const goBack = () => setStep(s => s - 1);
 
   const handleExport = () => {
-    // Sauvegarde le projet. La vraie génération/export serait faite ici.
+    if (!schema) return;
     addProject({
       id: crypto.randomUUID(),
       name,
       description: description || need,
       modules: selectedModules.map(id => ({
         id,
-        name: id, // Pour la vraie UI, nommage friendly à récupérer
+        name: id,
         description: "",
         tables: [],
       })),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      schema, // Enregistre le vrai schéma dans le projet
     });
     navigate("/");
   };
@@ -121,10 +131,11 @@ export default function MultiStepProjectWizard() {
             onNext={goNext}
           />
         )}
-        {step === 4 && (
+        {step === 4 && schema && (
           <Step5Export
             onBack={goBack}
             onExport={handleExport}
+            schema={schema}
           />
         )}
       </div>
