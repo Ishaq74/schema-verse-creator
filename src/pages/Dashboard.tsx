@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Plus, Folder } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -51,7 +50,7 @@ export default function Dashboard() {
       <h1 className="text-3xl font-bold mb-6 text-center">Mes sites & projets</h1>
 
       <div className="flex justify-end mb-4">
-        <Button onClick={() => setShowForm(!showForm)}>
+        <Button onClick={() => navigate("/project/new")}>
           <Plus className="w-4 h-4 mr-2" />
           Nouveau site
         </Button>
