@@ -11,6 +11,7 @@ import { GeminiService } from "@/services/GeminiService";
 import { toast } from "@/hooks/use-toast";
 import MindmapDragDropList from "./MindmapDragDropList";
 import MindmapAllTablesContentPanel from "./MindmapAllTablesContentPanel";
+import JSZip from "jszip";
 
 function buildMindmapData(modules, schema) {
   return modules.map(mod => ({
@@ -61,8 +62,14 @@ export default function Step4Mindmap({
   const [allTableContent, setAllTableContent] = useState<Record<string, any[]>>({});
   const [showAllContentPanel, setShowAllContentPanel] = useState(false);
 
-  // 🆕 Nouveau : Nombre d’exemples à générer pour le batch IA (par défaut 10)
+  // 🆕 Configurable : Nombre d’exemples à générer pour le batch IA (par défaut 10)
   const [batchRecordCount, setBatchRecordCount] = useState<number>(10);
+
+  // 🆕 Configurable : Nombre de lignes à prévisualiser pour chaque table dans panel global
+  const [previewPerTable, setPreviewPerTable] = useState<number>(3);
+
+  // Progression batch génération IA
+  const [batchProgress, setBatchProgress] = useState<number>(0);
 
   // Pour édition interactive (drag & drop) => Simple, on gère sur selectedModuleIds directement
   function handleModulesReorder(fromIdx: number, toIdx: number) {
@@ -320,21 +327,29 @@ export default function Step4Mindmap({
 
   const editingTable = schema?.tables.find(tb => tb.id === editingTableId);
 
-  // 👇 Génération batch de contenu IA pour toutes les tables du schéma
-  const handleGenerateAllContent = async () => {
+  // ========== AMÉLIORATIONS IA BATCH ==========
+
+  // Génération batch avec progress bar
+  const handleGenerateAllContent = async (regenOnlyEmpty: boolean = false) => {
     if (!schema) return;
     const apiKey = GeminiService.getStoredApiKey();
     if (!apiKey) {
       toast({ title: "Clé API Gemini requise", description: "Configurer ta clé Gemini pour générer du contenu.", variant: "destructive" });
       return;
     }
-    const recordCount = batchRecordCount; // 🆕 Version personnalisée
+    const recordCount = batchRecordCount;
     setLoading(true);
+    setBatchProgress(0);
+
     try {
       const gemini = new GeminiService({ apiKey });
-      toast({ title: "Génération IA", description: "Démarrage génération multi-table...", variant: "default" });
-      const results: Record<string, any[]> = {};
-      for (const tb of schema.tables) {
+      const tablesToGenerate = schema.tables.filter(
+        tb => !regenOnlyEmpty || !(allTableContent[tb.id] && allTableContent[tb.id].length)
+      );
+      toast({ title: "Génération IA", description: `Démarrage génération sur ${tablesToGenerate.length} tables...`, variant: "default" });
+      const results: Record<string, any[]> = regenOnlyEmpty ? { ...allTableContent } : {};
+      let done = 0;
+      for (const tb of tablesToGenerate) {
         const data = await gemini.generateSampleData({
           table: tb,
           recordCount,
@@ -343,17 +358,73 @@ export default function Step4Mindmap({
           style: "réaliste",
         });
         results[tb.id] = data.data;
+        done += 1;
+        setBatchProgress(Math.round((done / tablesToGenerate.length) * 100));
       }
       setAllTableContent(results);
+      setBatchProgress(100);
       toast({ title: "Contenu généré", description: "Exemples IA créés pour toutes les tables.", variant: "default" });
       setShowAllContentPanel(true);
     } catch (e) {
       toast({ title: "Erreur lors de la génération IA", description: String(e), variant: "destructive" });
     }
     setLoading(false);
+    setBatchProgress(0);
   };
 
-  // Export tout le contenu batch généré
+  // Export tout le contenu batch généré EN CSV
+  const handleExportAllContentCSV = async () => {
+    if (!Object.keys(allTableContent).length) return;
+    const tables = schema?.tables || [];
+    if (!tables.length) return;
+
+    const zip = new JSZip();
+
+    tables.forEach(tb => {
+      const rows = allTableContent[tb.id];
+      if (rows && rows.length) {
+        // CSV header
+        const fields = Object.keys(rows[0] || {});
+        const csvRows = [
+          fields.join(","),
+          ...rows.map(row => fields.map(f =>
+            typeof row[f] === "string" 
+              ? `"${row[f].replace(/"/g, '""')}"`
+              : row[f] === undefined || row[f] === null ? "" : row[f]
+          ).join(",")),
+        ].join("\n");
+        zip.file(`${tb.name.replace(/\s+/g, "_")}_data.csv`, csvRows);
+      }
+    });
+    if (Object.keys(zip.files).length === 0) {
+      toast({ title: "Aucune donnée à exporter en CSV.", variant: "destructive" });
+      return;
+    }
+    const blob = await zip.generateAsync({ type: "blob" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "projectdata_all_tables_csv.zip";
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: "Export CSV (ZIP) OK !", variant: "default" });
+  };
+
+  // Effacer tout le contenu IA généré
+  const handleClearAllContent = () => {
+    setAllTableContent({});
+    toast({ title: "Contenu IA effacé pour toutes les tables", variant: "default" });
+  };
+
+  // Effacer contenu d’une table (inchangé)
+  const handleContentClearOneTable = (tableId: string) => {
+    setAllTableContent(content => {
+      const { [tableId]: _, ...rest } = content;
+      return rest;
+    });
+  };
+
+  // Export tout le contenu batch généré EN JSON
   const handleExportAllContent = () => {
     if (!Object.keys(allTableContent).length) return;
     const blob = new Blob([JSON.stringify(allTableContent, null, 2)], { type: "application/json" });
@@ -364,13 +435,6 @@ export default function Step4Mindmap({
     a.click();
     URL.revokeObjectURL(url);
     toast({ title: `Export JSON global OK !`, variant: "default" });
-  };
-
-  const handleContentClearOneTable = (tableId: string) => {
-    setAllTableContent(content => {
-      const { [tableId]: _, ...rest } = content;
-      return rest;
-    });
   };
 
   return (
@@ -384,40 +448,102 @@ export default function Step4Mindmap({
           onExport={handleExport}
           loading={loading}
         />
-        {/* 🆕 Ajout sélecteur batchRecordCount à côté du bouton “Générer tout le contenu IA” */}
-        <div className="flex items-center gap-2 my-2">
-          <label htmlFor="batch-recordcount" className="text-xs text-slate-600">
-            Nb d'exemples / table :
-          </label>
-          <input
-            id="batch-recordcount"
-            type="number"
-            min={1}
-            max={100}
-            className="border px-2 rounded text-xs w-16"
-            value={batchRecordCount}
-            onChange={e => setBatchRecordCount(Number(e.target.value) || 10)}
-            disabled={loading}
-            title="Nombre d'exemples à générer par table (batch)"
-          />
-          <Button
-            size="sm"
-            variant="default"
-            className="my-2"
-            onClick={handleGenerateAllContent}
-            disabled={loading || !schema?.tables?.length}
-          >
-            Générer tout le contenu IA
-          </Button>
+        {/* --- BOUTONS IA BATCH & EXPORT --- */}
+        <div className="flex flex-col gap-2 my-2">
+          <div className="flex items-center gap-2">
+            <label htmlFor="batch-recordcount" className="text-xs text-slate-600">
+              Nb d'exemples / table :
+            </label>
+            <input
+              id="batch-recordcount"
+              type="number"
+              min={1}
+              max={100}
+              className="border px-2 rounded text-xs w-16"
+              value={batchRecordCount}
+              onChange={e => setBatchRecordCount(Number(e.target.value) || 10)}
+              disabled={loading}
+              title="Nombre d'exemples à générer par table (batch)"
+            />
+            <Button
+              size="sm"
+              variant="default"
+              className="my-2"
+              onClick={() => handleGenerateAllContent(false)}
+              disabled={loading || !schema?.tables?.length}
+              title="Générer du contenu IA pour toutes les tables (nouveau contenu)"
+            >
+              Générer tout le contenu IA
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              className="my-2"
+              onClick={() => handleGenerateAllContent(true)}
+              disabled={loading || !schema?.tables?.length}
+              title="Ne génère que pour les tables vides (laisse intacts les existants)"
+            >
+              Générer uniquement les vides
+            </Button>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <label htmlFor="previewcount" className="text-xs text-slate-600">
+              Prévisualiser&nbsp;
+              <input
+                id="previewcount"
+                type="number"
+                min={1}
+                max={30}
+                value={previewPerTable}
+                onChange={e => setPreviewPerTable(Number(e.target.value) || 3)}
+                className="border rounded px-2 text-xs w-12"
+                disabled={loading}
+                title="Nombre de lignes à prévisualiser dans les tableaux"
+                style={{ width: 48 }}
+              />{" "}
+              lignes/table
+            </label>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={() => setShowAllContentPanel(true)}
+              disabled={!Object.values(allTableContent).some(arr => arr?.length)}
+              size="sm"
+              variant="outline"
+              title="Voir le panneau de tout le contenu IA généré"
+            >
+              Voir contenu IA généré
+            </Button>
+            <Button
+              onClick={handleExportAllContentCSV}
+              disabled={!Object.values(allTableContent).some(arr => arr?.length)}
+              size="sm"
+              variant="outline"
+              title="Exporter tout en CSV (ZIP)"
+            >
+              Exporter tout (CSV)
+            </Button>
+            <Button
+              onClick={handleClearAllContent}
+              disabled={!Object.values(allTableContent).some(arr => arr?.length)}
+              size="sm"
+              variant="destructive"
+              title="Effacer tout le contenu IA généré"
+            >
+              Tout effacer
+            </Button>
+          </div>
+          {/* Progress bar génération batch IA */}
+          {loading && (
+            <div className="w-full my-2">
+              <div className="h-2 bg-slate-200 rounded">
+                <div className="h-2 rounded bg-blue-500 transition-all" style={{ width: `${batchProgress}%` }} />
+              </div>
+              <div className="text-xs text-slate-500 text-center mt-1">{batchProgress > 0 ? `${batchProgress}%` : "Génération en cours..."}</div>
+            </div>
+          )}
         </div>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => setShowAllContentPanel(true)}
-          disabled={!Object.values(allTableContent).some(arr => arr?.length)}
-        >
-          Voir contenu IA généré
-        </Button>
       </div>
 
       {/* Mindmap principale */}
@@ -501,6 +627,7 @@ export default function Step4Mindmap({
         loading={loading}
         onContentClear={handleContentClearOneTable}
         onExportAll={handleExportAllContent}
+        previewPerTable={previewPerTable}
       />
     </div>
   );
