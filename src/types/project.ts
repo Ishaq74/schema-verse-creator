@@ -1,4 +1,6 @@
 
+import type { Schema } from "@/types/schema";
+
 export interface Module {
   id: string;
   name: string;
@@ -14,4 +16,5 @@ export interface Project {
   modules: Module[];
   createdAt: string;
   updatedAt?: string;
+  schema: Schema; // <-- added this line to fix the error
 }
