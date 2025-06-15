@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { moduleCatalogue } from "@/modules/catalogue";
@@ -255,7 +254,7 @@ export default function Step4Mindmap({
                           onEnhanceIA={handleEnhanceTableByIA}
                           enhancementInProgress={enhancingTableId === tb.id}
                         />
-                        <Button size="xs" className="mt-1" variant="ghost" onClick={() => handleTableEdit(tb)}>
+                        <Button size="sm" className="mt-1" variant="ghost" onClick={() => handleTableEdit(tb)}>
                           ✏️ Éditer table
                         </Button>
                       </>
@@ -279,4 +278,3 @@ export default function Step4Mindmap({
     </div>
   );
 }
-
