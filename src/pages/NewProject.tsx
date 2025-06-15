@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -5,13 +6,7 @@ import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import { moduleCatalogue, BaseModule } from "@/modules/catalogue";
 
-type BaseModule = {
-  id: string;
-  name: string;
-  description: string;
-  required?: boolean;
-};
-
+// On supprime le type redéfini ici (conflit import)
 export default function NewProject() {
   const [step, setStep] = useState(1);
   const [name, setName] = useState("");
