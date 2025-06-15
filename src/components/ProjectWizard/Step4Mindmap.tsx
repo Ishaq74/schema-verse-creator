@@ -12,6 +12,8 @@ import { toast } from "@/hooks/use-toast";
 import MindmapDragDropList from "./MindmapDragDropList";
 import MindmapAllTablesContentPanel from "./MindmapAllTablesContentPanel";
 import JSZip from "jszip";
+import MindmapBatchIATools from "./MindmapBatchIATools";
+import MindmapMainMap from "./MindmapMainMap";
 
 function buildMindmapData(modules, schema) {
   return modules.map(mod => ({
@@ -449,174 +451,44 @@ export default function Step4Mindmap({
           loading={loading}
         />
         {/* --- BOUTONS IA BATCH & EXPORT --- */}
-        <div className="flex flex-col gap-2 my-2">
-          <div className="flex items-center gap-2">
-            <label htmlFor="batch-recordcount" className="text-xs text-slate-600">
-              Nb d'exemples / table :
-            </label>
-            <input
-              id="batch-recordcount"
-              type="number"
-              min={1}
-              max={100}
-              className="border px-2 rounded text-xs w-16"
-              value={batchRecordCount}
-              onChange={e => setBatchRecordCount(Number(e.target.value) || 10)}
-              disabled={loading}
-              title="Nombre d'exemples à générer par table (batch)"
-            />
-            <Button
-              size="sm"
-              variant="default"
-              className="my-2"
-              onClick={() => handleGenerateAllContent(false)}
-              disabled={loading || !schema?.tables?.length}
-              title="Générer du contenu IA pour toutes les tables (nouveau contenu)"
-            >
-              Générer tout le contenu IA
-            </Button>
-            <Button
-              size="sm"
-              variant="secondary"
-              className="my-2"
-              onClick={() => handleGenerateAllContent(true)}
-              disabled={loading || !schema?.tables?.length}
-              title="Ne génère que pour les tables vides (laisse intacts les existants)"
-            >
-              Générer uniquement les vides
-            </Button>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <label htmlFor="previewcount" className="text-xs text-slate-600">
-              Prévisualiser&nbsp;
-              <input
-                id="previewcount"
-                type="number"
-                min={1}
-                max={30}
-                value={previewPerTable}
-                onChange={e => setPreviewPerTable(Number(e.target.value) || 3)}
-                className="border rounded px-2 text-xs w-12"
-                disabled={loading}
-                title="Nombre de lignes à prévisualiser dans les tableaux"
-                style={{ width: 48 }}
-              />{" "}
-              lignes/table
-            </label>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              onClick={() => setShowAllContentPanel(true)}
-              disabled={!Object.values(allTableContent).some(arr => arr?.length)}
-              size="sm"
-              variant="outline"
-              title="Voir le panneau de tout le contenu IA généré"
-            >
-              Voir contenu IA généré
-            </Button>
-            <Button
-              onClick={handleExportAllContentCSV}
-              disabled={!Object.values(allTableContent).some(arr => arr?.length)}
-              size="sm"
-              variant="outline"
-              title="Exporter tout en CSV (ZIP)"
-            >
-              Exporter tout (CSV)
-            </Button>
-            <Button
-              onClick={handleClearAllContent}
-              disabled={!Object.values(allTableContent).some(arr => arr?.length)}
-              size="sm"
-              variant="destructive"
-              title="Effacer tout le contenu IA généré"
-            >
-              Tout effacer
-            </Button>
-          </div>
-          {/* Progress bar génération batch IA */}
-          {loading && (
-            <div className="w-full my-2">
-              <div className="h-2 bg-slate-200 rounded">
-                <div className="h-2 rounded bg-blue-500 transition-all" style={{ width: `${batchProgress}%` }} />
-              </div>
-              <div className="text-xs text-slate-500 text-center mt-1">{batchProgress > 0 ? `${batchProgress}%` : "Génération en cours..."}</div>
-            </div>
-          )}
-        </div>
+        <MindmapBatchIATools
+          batchRecordCount={batchRecordCount}
+          setBatchRecordCount={setBatchRecordCount}
+          previewPerTable={previewPerTable}
+          setPreviewPerTable={setPreviewPerTable}
+          loading={loading}
+          schemaTablesLength={schema?.tables?.length || 0}
+          allTableContent={allTableContent}
+          handleGenerateAllContent={handleGenerateAllContent}
+          handleExportAllContentCSV={handleExportAllContentCSV}
+          handleClearAllContent={handleClearAllContent}
+          setShowAllContentPanel={setShowAllContentPanel}
+          batchProgress={batchProgress}
+        />
       </div>
 
       {/* Mindmap principale */}
-      <div className="flex-1">
-        <div className="flex flex-wrap justify-center gap-7 my-5">
-          <MindmapDragDropList
-            items={mindmap.map(m => ({ id: m.id, name: m.name }))}
-            renderItem={(mod, i) => (
-              <div className="bg-gradient-to-tl from-slate-50 to-blue-50 border px-4 py-3 rounded-lg shadow w-[270px] max-w-full">
-                <div className="font-bold text-blue-700">{mod.name}</div>
-                <div className="text-xs mb-2 text-slate-500">Module: {mod.id}</div>
-                <MindmapDragDropList
-                  items={mindmap[i]?.tables.map(tb => ({ id: tb.id, name: tb.name }))}
-                  renderItem={(tb, tIdx) => {
-                    const tableData = mindmap[i]?.tables[tIdx];
-                    return (
-                      <div>
-                        {editingTableId === tb.id ? (
-                          <MindmapTableEditor
-                            table={tableData}
-                            onSave={handleTableSave}
-                            onCancel={() => setEditingTableId(null)}
-                          />
-                        ) : (
-                          <>
-                            <MindmapNode
-                              table={tableData}
-                              moduleName={mod.name}
-                              onEnhanceIA={handleEnhanceTableByIA}
-                              enhancementInProgress={enhancingTableId === tb.id}
-                            />
-                            <Button size="sm" className="mt-1" variant="ghost" onClick={() => handleTableEdit(tableData)}>
-                              ✏️ Éditer table
-                            </Button>
-                            {/* Champ fields dragdrop */}
-                            <MindmapDragDropList
-                              items={tableData.fields.map(f => ({ id: f.name, name: f.name }))}
-                              renderItem={(f) => (
-                                <span className="inline-flex rounded px-1 py-0.5 border bg-slate-50 text-slate-700 text-xxs">{f.name}</span>
-                              )}
-                              onMove={(from, to) => handleFieldMove(tb.id, from, to)}
-                              onDelete={(fid) => handleFieldDelete(tb.id, fid)}
-                              onAdd={(fname) => handleFieldAdd(tb.id, fname)}
-                              addLabel="Ajouter champ"
-                            />
-                          </>
-                        )}
-                      </div>
-                    );
-                  }}
-                  onMove={(from, to) => handleTableMove(i, from, to)}
-                  onDelete={(tid) => handleTableDelete(i, tid)}
-                  onAdd={(tname) => handleTableAdd(i, tname)}
-                  addLabel="Ajouter table"
-                />
-              </div>
-            )}
-            onMove={handleModulesReorder}
-            onDelete={handleModuleRemove}
-            onAdd={handleModuleAdd}
-            addLabel="Ajouter module"
-          />
-        </div>
-        {/* Visualisation des relations */}
-        <MindmapRelations tables={schema?.tables || []} />
-        <div className="flex justify-between mt-6">
-          <Button variant="outline" onClick={onBack}>Retour</Button>
-          <Button onClick={onNext}>Etape finale</Button>
-        </div>
-        <div className="text-xs text-center text-slate-400 mt-3">
-          (Mindmap interactive : Drag&Drop, édition/ajout/suppression multi-niveaux, toujours IA… [RELATIONS et EXPORTS CI-DESSUS])
-        </div>
-      </div>
+      <MindmapMainMap
+        mindmap={mindmap}
+        editingTableId={editingTableId}
+        editingTable={editingTable}
+        handleTableEdit={handleTableEdit}
+        handleTableSave={handleTableSave}
+        handleFieldMove={handleFieldMove}
+        handleFieldDelete={handleFieldDelete}
+        handleFieldAdd={handleFieldAdd}
+        handleTableMove={handleTableMove}
+        handleTableDelete={handleTableDelete}
+        handleTableAdd={handleTableAdd}
+        handleModulesReorder={handleModulesReorder}
+        handleModuleRemove={handleModuleRemove}
+        handleModuleAdd={handleModuleAdd}
+        handleEnhanceTableByIA={handleEnhanceTableByIA}
+        enhancingTableId={enhancingTableId}
+        schemaTables={schema?.tables || []}
+        onBack={onBack}
+        onNext={onNext}
+      />
 
       {/* Panel central : visualisation/gestion contenu IA global */}
       <MindmapAllTablesContentPanel
