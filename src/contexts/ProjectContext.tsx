@@ -5,6 +5,7 @@ import { Project } from "@/types/project";
 interface ProjectContextType {
   projects: Project[];
   addProject: (project: Project) => void;
+  updateProject: (id: string, data: Project) => void;
 }
 
 const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
@@ -45,8 +46,14 @@ export const ProjectProvider = ({ children }: { children: React.ReactNode }) => 
     setProjects(prev => [project, ...prev]);
   };
 
+  const updateProject = (id: string, data: Project) => {
+    setProjects(prev =>
+      prev.map(proj => (proj.id === id ? { ...data } : proj))
+    );
+  };
+
   return (
-    <ProjectContext.Provider value={{ projects, addProject }}>
+    <ProjectContext.Provider value={{ projects, addProject, updateProject }}>
       {children}
     </ProjectContext.Provider>
   );
