@@ -2,9 +2,9 @@ import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useProjects } from "@/contexts/ProjectContext";
-import { Project, Module, Field } from "@/types/project";
+import { Project, Module } from "@/types/project";
 import { Badge } from "@/components/ui/badge";
-import { Table } from "@/types/schema";
+import { Table, Field } from "@/types/schema";
 import { X, Plus, Trash2, Check } from "lucide-react";
 import FieldEditorRow from "./FieldEditorRow";
 
@@ -304,7 +304,7 @@ export const ProjectSchemaEditorModal: React.FC<ProjectSchemaEditorModalProps> =
                       <div className="bg-gray-50 mt-2 mb-1 p-3 rounded border">
                         <div className="font-semibold mb-2 flex items-center gap-3">
                           Champs de la table &laquo; {tb.name} &raquo;
-                          <Button size="xs" onClick={handleFieldAdd} variant="outline">
+                          <Button size="sm" onClick={handleFieldAdd} variant="outline">
                             <Plus className="w-4 h-4" /> Ajouter champ
                           </Button>
                         </div>
