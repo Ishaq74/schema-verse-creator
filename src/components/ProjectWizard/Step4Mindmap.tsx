@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { moduleCatalogue } from "@/modules/catalogue";
@@ -103,7 +102,7 @@ export default function Step4Mindmap({
       a.download = "documentation_mindmap.md";
       a.click();
       URL.revokeObjectURL(url);
-      toast({ title: "Documentation générée !", variant: "success" });
+      toast({ title: "Documentation générée !", variant: "default" });
     } catch (e) {
       toast({ title: "Erreur GEMINI", description: String(e), variant: "destructive" });
     }
@@ -121,7 +120,7 @@ export default function Step4Mindmap({
       const gemini = new GeminiService({ apiKey });
       const tableOptimisee = await gemini.improveTable(tb);
       if (onTableUpdate) onTableUpdate(tableOptimisee);
-      toast({ title: "Table IA OK !", description: `La table ${tb.name} est enrichie.`, variant: "success" });
+      toast({ title: "Table IA OK !", description: `La table ${tb.name} est enrichie.`, variant: "default" });
     } catch (e) {
       toast({ title: "Erreur GEMINI", description: String(e), variant: "destructive" });
     } finally {
