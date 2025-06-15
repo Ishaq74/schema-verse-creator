@@ -1,12 +1,12 @@
-
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useProjects } from "@/contexts/ProjectContext";
-import { Project, Module } from "@/types/project";
+import { Project, Module, Field } from "@/types/project";
 import { Badge } from "@/components/ui/badge";
 import { Table } from "@/types/schema";
 import { X, Plus, Trash2, Check } from "lucide-react";
+import FieldEditorRow from "./FieldEditorRow";
 
 interface ProjectSchemaEditorModalProps {
   open: boolean;
@@ -26,6 +26,8 @@ export const ProjectSchemaEditorModal: React.FC<ProjectSchemaEditorModalProps> =
   const [isEditingTable, setIsEditingTable] = useState<string | null>(null);
   const [editedModule, setEditedModule] = useState<Partial<Module>>({});
   const [editedTable, setEditedTable] = useState<Partial<Table>>({});
+  const [editingFieldsTableId, setEditingFieldsTableId] = useState<string | null>(null);
+  const [fieldDrafts, setFieldDrafts] = useState<{ [tableId: string]: Field[] }>({});
   const [saving, setSaving] = useState(false);
 
   // Handle module edition
@@ -100,6 +102,80 @@ export const ProjectSchemaEditorModal: React.FC<ProjectSchemaEditorModalProps> =
     setEditedTable(newTable);
   };
 
+  // Champs/fields handling
+  const handleEditFields = (table: Table) => {
+    setEditingFieldsTableId(table.id);
+    setFieldDrafts(d => ({
+      ...d,
+      [table.id]: table.fields.length > 0
+        ? table.fields.map(f => ({ ...f }))
+        : [{
+            name: "",
+            type_general: "string",
+            type_sql: "",
+            required: false,
+            unique: false,
+            primary_key: false,
+            description: "",
+            example_value: "",
+            slug_compatible: false,
+            acf_field_type: "",
+            ui_component: "input"
+          }]
+    }));
+  };
+
+  const handleFieldChange = (idx: number, field: Field) => {
+    if (!editingFieldsTableId) return;
+    setFieldDrafts(d => ({
+      ...d,
+      [editingFieldsTableId]: d[editingFieldsTableId].map((f, i) => (i === idx ? field : f))
+    }));
+  };
+
+  const handleFieldAdd = () => {
+    if (!editingFieldsTableId) return;
+    setFieldDrafts(d => ({
+      ...d,
+      [editingFieldsTableId]: [
+        ...(d[editingFieldsTableId] || []),
+        {
+          name: "",
+          type_general: "string",
+          type_sql: "",
+          required: false,
+          unique: false,
+          primary_key: false,
+          description: "",
+          example_value: "",
+          slug_compatible: false,
+          acf_field_type: "",
+          ui_component: "input"
+        }
+      ]
+    }));
+  };
+
+  const handleFieldDelete = (idx: number) => {
+    if (!editingFieldsTableId) return;
+    setFieldDrafts(d => ({
+      ...d,
+      [editingFieldsTableId]: d[editingFieldsTableId].filter((_, i) => i !== idx)
+    }));
+  };
+
+  const handleFieldsSave = () => {
+    if (!editingFieldsTableId) return;
+    setTables(ts =>
+      ts.map(t =>
+        t.id === editingFieldsTableId
+          ? { ...t, fields: fieldDrafts[editingFieldsTableId] }
+          : t
+      )
+    );
+    setEditingFieldsTableId(null);
+  };
+
   // Sauvegarder modifications du projet
   const handleSaveAll = () => {
     setSaving(true);
@@ -126,12 +202,15 @@ export const ProjectSchemaEditorModal: React.FC<ProjectSchemaEditorModalProps> =
 
   return (
     <Dialog open={open} onOpenChange={v => !v && onClose()}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Édition schéma & modules</DialogTitle>
           <DialogDescription>
-            Tu peux ajouter, modifier ou retirer modules et tables pour ce projet.<br/>
-            <span className="text-xs text-slate-400">MVP édition — amélioration à venir (édition des champs dans une prochaine étape).</span>
+            Tu peux gérer modules, tables <b>et champs</b> de ce projet.
+            <br />
+            <span className="text-xs text-slate-400">
+              MVP : édition complète des champs de tables, ergonomie simple.
+            </span>
           </DialogDescription>
         </DialogHeader>
         <div className="my-3">
@@ -178,6 +257,7 @@ export const ProjectSchemaEditorModal: React.FC<ProjectSchemaEditorModalProps> =
             <div className="text-xs text-slate-400 mb-4">Aucun module associé.</div>
           )}
 
+          {/* Tables et édition des champs */}
           <div className="font-semibold mb-1 flex items-center justify-between">
             <span>Tables du schéma :</span>
             <Button variant="outline" size="sm" onClick={handleTableAdd} title="Ajouter table">
@@ -204,15 +284,50 @@ export const ProjectSchemaEditorModal: React.FC<ProjectSchemaEditorModalProps> =
                     <Button onClick={handleTableSave} size="icon" variant="ghost"><Check className="w-4 h-4" /></Button>
                   </li>
                 ) : (
-                  <li key={tb.id} className="flex gap-2 items-center py-1">
-                    <Badge className="bg-blue-100 text-blue-700">{tb.name || <span className="opacity-50 italic">[Sans nom]</span>}</Badge>
-                    <span className="text-xs text-slate-500">{tb.description}</span>
-                    <Button onClick={() => handleEditTable(tb)} size="icon" variant="ghost" title="Éditer">
-                      ✎
-                    </Button>
-                    <Button onClick={() => handleTableDelete(tb.id)} size="icon" variant="destructive" title="Supprimer">
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                  <li key={tb.id} className="flex flex-col gap-1 mb-2 py-1 border-b pb-2">
+                    <div className="flex gap-2 items-center">
+                      <Badge className="bg-blue-100 text-blue-700">{tb.name || <span className="opacity-50 italic">[Sans nom]</span>}</Badge>
+                      <span className="text-xs text-slate-500">{tb.description}</span>
+                      <Button onClick={() => handleEditTable(tb)} size="icon" variant="ghost" title="Éditer">
+                        ✎
+                      </Button>
+                      <Button onClick={() => handleTableDelete(tb.id)} size="icon" variant="destructive" title="Supprimer">
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                      <Button onClick={() => handleEditFields(tb)} size="sm" variant="outline" title="Éditer champs">
+                        🧩 Champs
+                      </Button>
+                    </div>
+
+                    {/* Editeur des champs */}
+                    {editingFieldsTableId === tb.id && (
+                      <div className="bg-gray-50 mt-2 mb-1 p-3 rounded border">
+                        <div className="font-semibold mb-2 flex items-center gap-3">
+                          Champs de la table &laquo; {tb.name} &raquo;
+                          <Button size="xs" onClick={handleFieldAdd} variant="outline">
+                            <Plus className="w-4 h-4" /> Ajouter champ
+                          </Button>
+                        </div>
+                        <div>
+                          {(fieldDrafts[tb.id] || []).map((field, i) => (
+                            <FieldEditorRow
+                              key={i}
+                              value={field}
+                              onChange={f => handleFieldChange(i, f)}
+                              onDelete={() => handleFieldDelete(i)}
+                            />
+                          ))}
+                        </div>
+                        <div className="flex gap-2 mt-2">
+                          <Button size="sm" onClick={handleFieldsSave} variant="secondary">
+                            <Check className="w-4 h-4 mr-1" /> Valider les champs
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => setEditingFieldsTableId(null)}>
+                            Annuler
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </li>
                 )
               )}
