@@ -10,6 +10,7 @@ import MindmapRelations from "./MindmapRelations";
 import { GeminiService } from "@/services/GeminiService";
 import { toast } from "@/hooks/use-toast";
 import MindmapDragDropList from "./MindmapDragDropList";
+import MindmapAllTablesContentPanel from "./MindmapAllTablesContentPanel";
 
 function buildMindmapData(modules, schema) {
   return modules.map(mod => ({
@@ -55,6 +56,10 @@ export default function Step4Mindmap({
   const [enhancingTableId, setEnhancingTableId] = useState<string | null>(null);
   const [editingTableId, setEditingTableId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // 👇 NOUVEAU : Etat pour le contenu IA généré de toutes les tables
+  const [allTableContent, setAllTableContent] = useState<Record<string, any[]>>({});
+  const [showAllContentPanel, setShowAllContentPanel] = useState(false);
 
   // Pour édition interactive (drag & drop) => Simple, on gère sur selectedModuleIds directement
   function handleModulesReorder(fromIdx: number, toIdx: number) {
@@ -312,6 +317,59 @@ export default function Step4Mindmap({
 
   const editingTable = schema?.tables.find(tb => tb.id === editingTableId);
 
+  // 👇 Génération batch de contenu IA pour toutes les tables du schéma
+  const handleGenerateAllContent = async () => {
+    if (!schema) return;
+    const apiKey = GeminiService.getStoredApiKey();
+    if (!apiKey) {
+      toast({ title: "Clé API Gemini requise", description: "Configurer ta clé Gemini pour générer du contenu.", variant: "destructive" });
+      return;
+    }
+    const recordCount = 10; // Peut être rendu customizable
+    setLoading(true);
+    try {
+      const gemini = new GeminiService({ apiKey });
+      toast({ title: "Génération IA", description: "Démarrage génération multi-table...", variant: "default" });
+      const results: Record<string, any[]> = {};
+      for (const tb of schema.tables) {
+        const data = await gemini.generateSampleData({
+          table: tb,
+          recordCount,
+          context: `Génère des exemples réalistes pour la table "${tb.name}" du site.`,
+          language: "fr",
+          style: "réaliste",
+        });
+        results[tb.id] = data.data;
+      }
+      setAllTableContent(results);
+      toast({ title: "Contenu généré", description: "Exemples IA créés pour toutes les tables.", variant: "default" });
+      setShowAllContentPanel(true);
+    } catch (e) {
+      toast({ title: "Erreur lors de la génération IA", description: String(e), variant: "destructive" });
+    }
+    setLoading(false);
+  };
+
+  // Export tout le contenu batch généré
+  const handleExportAllContent = () => {
+    if (!Object.keys(allTableContent).length) return;
+    const blob = new Blob([JSON.stringify(allTableContent, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `projectdata_all_tables.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: `Export JSON global OK !`, variant: "default" });
+  };
+
+  const handleContentClearOneTable = (tableId: string) => {
+    setAllTableContent(content => {
+      const { [tableId]: _, ...rest } = content;
+      return rest;
+    });
+  };
+
   return (
     <div className="flex flex-col md:flex-row gap-6">
       {/* Toolbar latérale */}
@@ -321,7 +379,26 @@ export default function Step4Mindmap({
         onValidate={handleValidate}
         onExport={handleExport}
         loading={loading}
-      />
+      >
+        {/* Ajout bouton batch IA */}
+        <Button
+          size="sm"
+          variant="default"
+          className="my-2"
+          onClick={handleGenerateAllContent}
+          disabled={loading || !schema?.tables?.length}
+        >
+          Générer tout le contenu IA
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => setShowAllContentPanel(true)}
+          disabled={!Object.values(allTableContent).some(arr => arr?.length)}
+        >
+          Voir contenu IA généré
+        </Button>
+      </MindmapToolbar>
 
       {/* Mindmap principale */}
       <div className="flex-1">
@@ -394,6 +471,17 @@ export default function Step4Mindmap({
           (Mindmap interactive : Drag&Drop, édition/ajout/suppression multi-niveaux, toujours IA… [RELATIONS et EXPORTS CI-DESSUS])
         </div>
       </div>
+
+      {/* Panel central : visualisation/gestion contenu IA global */}
+      <MindmapAllTablesContentPanel
+        open={showAllContentPanel}
+        onClose={() => setShowAllContentPanel(false)}
+        tableContents={allTableContent}
+        tables={schema?.tables || []}
+        loading={loading}
+        onContentClear={handleContentClearOneTable}
+        onExportAll={handleExportAllContent}
+      />
     </div>
   );
 }
