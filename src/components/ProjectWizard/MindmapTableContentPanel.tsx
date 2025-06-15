@@ -80,13 +80,13 @@ export default function MindmapTableContentPanel({ table, onClose }: MindmapTabl
           title="Nombre d'exemples à générer"
           disabled={loading}
         />
-        <Button size="xs" onClick={handleGenerate} disabled={loading}>
+        <Button size="sm" onClick={handleGenerate} disabled={loading}>
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />} Générer
         </Button>
-        <Button size="xs" variant="outline" onClick={handleClear} disabled={loading || !content}><Trash2 className="w-4 h-4" /></Button>
-        <Button size="xs" variant="secondary" onClick={handleDownload} disabled={!content}><Download className="w-4 h-4" /></Button>
+        <Button size="sm" variant="outline" onClick={handleClear} disabled={loading || !content}><Trash2 className="w-4 h-4" /></Button>
+        <Button size="sm" variant="secondary" onClick={handleDownload} disabled={!content}><Download className="w-4 h-4" /></Button>
         {onClose && (
-          <Button size="xs" variant="ghost" onClick={onClose}>✕</Button>
+          <Button size="sm" variant="ghost" onClick={onClose}>✕</Button>
         )}
       </div>
       {content ? (
@@ -102,3 +102,4 @@ export default function MindmapTableContentPanel({ table, onClose }: MindmapTabl
     </div>
   );
 }
+

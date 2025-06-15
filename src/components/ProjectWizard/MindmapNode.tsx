@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import MindmapAIEnhanceButton from "./MindmapAIEnhanceButton";
 import MindmapTableContentPanel from "./MindmapTableContentPanel";
 import { Database } from "lucide-react";
-import Button from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 
 interface MindmapNodeProps {
   table: Table;
