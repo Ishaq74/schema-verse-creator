@@ -140,9 +140,10 @@ export default function MultiStepProjectWizard() {
             onUpdateTable={handleTableUpdate}
           />
         )}
-        {step === 3 && (
+        {step === 3 && schema && (
           <Step4Mindmap
             selectedModuleIds={selectedModules}
+            schema={schema}
             onBack={goBack}
             onNext={goNext}
           />
