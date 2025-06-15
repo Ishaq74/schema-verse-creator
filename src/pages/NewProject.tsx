@@ -1,9 +1,9 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
+import { moduleCatalogue, BaseModule } from "@/modules/catalogue";
 
 type BaseModule = {
   id: string;
@@ -12,44 +12,17 @@ type BaseModule = {
   required?: boolean;
 };
 
-const baseModules: BaseModule[] = [
-  {
-    id: "base-identity",
-    name: "Identité du site",
-    description: "Nom, slogan, logo, et éléments de branding essentiels.",
-    required: true,
-  },
-  {
-    id: "organization",
-    name: "Organisation",
-    description: "Gestion des organisations, équipes, rôles/permissions.",
-    required: false,
-  },
-  {
-    id: "users-advanced",
-    name: "Utilisateurs Avancé",
-    description: "Gestion des comptes, profils, rôles, droits, sécurité avancée.",
-    required: true,
-  },
-  {
-    id: "design",
-    name: "Design & Thème",
-    description: "Personnalisation de l’apparence, couleurs, logo, design token.",
-    required: false,
-  },
-];
-
 export default function NewProject() {
   const [step, setStep] = useState(1);
   const [name, setName] = useState("");
   const [desc, setDesc] = useState("");
   const [selectedModules, setSelectedModules] = useState<string[]>(
-    baseModules.filter(m => m.required).map(m => m.id)
+    moduleCatalogue.filter(m => m.required).map(m => m.id)
   );
   const navigate = useNavigate();
 
   const handleModuleToggle = (id: string) => {
-    if (baseModules.find(m => m.id === id)?.required) return;
+    if (moduleCatalogue.find(m => m.id === id)?.required) return;
     setSelectedModules(mods =>
       mods.includes(id) ? mods.filter(mid => mid !== id) : [...mods, id]
     );
@@ -113,7 +86,7 @@ export default function NewProject() {
                 Sélectionnez les briques incontournables : l’IA complétera la structure plus tard.
               </div>
               <div className="space-y-3">
-                {baseModules.map(mod => (
+                {moduleCatalogue.map(mod => (
                   <div
                     key={mod.id}
                     className={`flex items-center gap-3 p-3 rounded border cursor-pointer ${
