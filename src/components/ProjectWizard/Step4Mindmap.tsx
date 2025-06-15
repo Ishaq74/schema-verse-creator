@@ -131,7 +131,7 @@ export default function Step4Mindmap({
     if (!tb) return;
     const field = {
       name,
-      type_general: "string" as "string", // Correction ici : forcer le type validé
+      type_general: "string" as "string",
       type_sql: "VARCHAR(255)",
       required: false,
       unique: false,
@@ -139,10 +139,10 @@ export default function Step4Mindmap({
       description: "",
       example_value: "",
       slug_compatible: false,
-      acf_field_type: "input",
-      ui_component: "input",
+      acf_field_type: "input" as "input", // assertion for allowed type
+      ui_component: "input" as "input",   // assertion for allowed type
     };
-    const tbu = { ...tb, fields: [...tb.fields, field] };
+    const tbu = { ...tb, fields: [...tb.fields, field as import("@/types/schema").Field] };
     onTableUpdate?.(tbu);
   }
 
