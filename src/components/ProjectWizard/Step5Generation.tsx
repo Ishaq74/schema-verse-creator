@@ -43,21 +43,33 @@ export default function Step5Generation({
         switch (dialect) {
           case 'mysql':
             if (field.type_general === 'string') definition += field.required ? 'VARCHAR(255) NOT NULL' : 'VARCHAR(255)';
-            else if (field.type_general === 'number') definition += field.primary_key ? 'INT AUTO_INCREMENT PRIMARY KEY' : 'INT';
-            else if (field.type_general === 'boolean') definition += 'BOOLEAN';
-            else if (field.type_general === 'date') definition += 'DATETIME';
+            else if (field.type_general === 'int') definition += field.primary_key ? 'INT AUTO_INCREMENT PRIMARY KEY' : 'INT';
+            else if (field.type_general === 'bool') definition += 'BOOLEAN';
+            else if (field.type_general === 'datetime') definition += 'DATETIME';
+            else if (field.type_general === 'text') definition += 'TEXT';
+            else if (field.type_general === 'float') definition += 'DECIMAL(10,2)';
+            else if (field.type_general === 'uuid') definition += 'VARCHAR(36)';
+            else if (field.type_general === 'json') definition += 'JSON';
             break;
           case 'postgresql':
             if (field.type_general === 'string') definition += field.required ? 'VARCHAR(255) NOT NULL' : 'VARCHAR(255)';
-            else if (field.type_general === 'number') definition += field.primary_key ? 'SERIAL PRIMARY KEY' : 'INTEGER';
-            else if (field.type_general === 'boolean') definition += 'BOOLEAN';
-            else if (field.type_general === 'date') definition += 'TIMESTAMP';
+            else if (field.type_general === 'int') definition += field.primary_key ? 'SERIAL PRIMARY KEY' : 'INTEGER';
+            else if (field.type_general === 'bool') definition += 'BOOLEAN';
+            else if (field.type_general === 'datetime') definition += 'TIMESTAMP';
+            else if (field.type_general === 'text') definition += 'TEXT';
+            else if (field.type_general === 'float') definition += 'DECIMAL(10,2)';
+            else if (field.type_general === 'uuid') definition += 'UUID';
+            else if (field.type_general === 'json') definition += 'JSONB';
             break;
           case 'sqlite':
             if (field.type_general === 'string') definition += field.required ? 'TEXT NOT NULL' : 'TEXT';
-            else if (field.type_general === 'number') definition += field.primary_key ? 'INTEGER PRIMARY KEY AUTOINCREMENT' : 'INTEGER';
-            else if (field.type_general === 'boolean') definition += 'BOOLEAN';
-            else if (field.type_general === 'date') definition += 'DATETIME';
+            else if (field.type_general === 'int') definition += field.primary_key ? 'INTEGER PRIMARY KEY AUTOINCREMENT' : 'INTEGER';
+            else if (field.type_general === 'bool') definition += 'BOOLEAN';
+            else if (field.type_general === 'datetime') definition += 'DATETIME';
+            else if (field.type_general === 'text') definition += 'TEXT';
+            else if (field.type_general === 'float') definition += 'REAL';
+            else if (field.type_general === 'uuid') definition += 'TEXT';
+            else if (field.type_general === 'json') definition += 'TEXT';
             break;
         }
         
@@ -97,9 +109,13 @@ export default function Step5Generation({
       
       table.fields.forEach(field => {
         const tsType = field.type_general === 'string' ? 'string' :
-                      field.type_general === 'number' ? 'number' :
-                      field.type_general === 'boolean' ? 'boolean' :
-                      field.type_general === 'date' ? 'Date' : 'any';
+                      field.type_general === 'text' ? 'string' :
+                      field.type_general === 'int' ? 'number' :
+                      field.type_general === 'float' ? 'number' :
+                      field.type_general === 'bool' ? 'boolean' :
+                      field.type_general === 'datetime' ? 'Date' :
+                      field.type_general === 'uuid' ? 'string' :
+                      field.type_general === 'json' ? 'any' : 'any';
         
         const optional = field.required ? '' : '?';
         ts += `  ${field.name}${optional}: ${tsType};\n`;
@@ -131,9 +147,13 @@ export default function Step5Generation({
         let fieldDef = `  ${field.name} `;
         
         if (field.type_general === 'string') fieldDef += 'String';
-        else if (field.type_general === 'number') fieldDef += field.primary_key ? 'Int @id @default(autoincrement())' : 'Int';
-        else if (field.type_general === 'boolean') fieldDef += 'Boolean';
-        else if (field.type_general === 'date') fieldDef += 'DateTime';
+        else if (field.type_general === 'text') fieldDef += 'String';
+        else if (field.type_general === 'int') fieldDef += field.primary_key ? 'Int @id @default(autoincrement())' : 'Int';
+        else if (field.type_general === 'float') fieldDef += 'Float';
+        else if (field.type_general === 'bool') fieldDef += 'Boolean';
+        else if (field.type_general === 'datetime') fieldDef += 'DateTime';
+        else if (field.type_general === 'uuid') fieldDef += 'String @db.Uuid';
+        else if (field.type_general === 'json') fieldDef += 'Json';
         
         if (!field.primary_key) {
           if (!field.required) fieldDef += '?';
@@ -182,6 +202,55 @@ export default function Step5Generation({
     return doc;
   };
 
+  const generateMigrations = () => {
+    let migration = `-- Migration pour ${schema.name}\n`;
+    migration += `-- Généré le: ${new Date().toLocaleDateString('fr-FR')}\n\n`;
+    
+    migration += `-- Ordre de création des tables (respecte les dépendances)\n\n`;
+    
+    schema.tables.forEach((table, index) => {
+      migration += `-- Étape ${index + 1}: Création de la table ${table.name}\n`;
+      migration += generateSQL('postgresql').split('\n')
+        .filter(line => line.includes(table.name) || line.includes('CREATE TABLE') || line.includes(table.fields[0]?.name))
+        .join('\n');
+      migration += `\n\n`;
+    });
+    
+    return migration;
+  };
+
+  const generateAPIEndpoints = () => {
+    let api = `// Endpoints API REST pour ${schema.name}\n`;
+    api += `// Généré le: ${new Date().toLocaleDateString('fr-FR')}\n\n`;
+    
+    schema.tables.forEach(table => {
+      const modelName = table.name.charAt(0).toUpperCase() + table.name.slice(1);
+      
+      api += `// Routes pour ${table.name}\n`;
+      api += `app.get('/api/${table.name}', async (req, res) => {\n`;
+      api += `  // Récupérer tous les ${table.name}\n`;
+      api += `});\n\n`;
+      
+      api += `app.get('/api/${table.name}/:id', async (req, res) => {\n`;
+      api += `  // Récupérer un ${table.name} par ID\n`;
+      api += `});\n\n`;
+      
+      api += `app.post('/api/${table.name}', async (req, res) => {\n`;
+      api += `  // Créer un nouveau ${table.name}\n`;
+      api += `});\n\n`;
+      
+      api += `app.put('/api/${table.name}/:id', async (req, res) => {\n`;
+      api += `  // Mettre à jour un ${table.name}\n`;
+      api += `});\n\n`;
+      
+      api += `app.delete('/api/${table.name}/:id', async (req, res) => {\n`;
+      api += `  // Supprimer un ${table.name}\n`;
+      api += `});\n\n`;
+    });
+    
+    return api;
+  };
+
   const copyToClipboard = async (content: string, type: string) => {
     try {
       await navigator.clipboard.writeText(content);
@@ -204,18 +273,47 @@ export default function Step5Generation({
     toast({ title: "Téléchargé!", description: `Le fichier ${filename} a été téléchargé` });
   };
 
+  const downloadAllFiles = () => {
+    const files = [
+      { content: generateSQL('postgresql'), filename: `${schema.name}_postgresql.sql` },
+      { content: generateSQL('mysql'), filename: `${schema.name}_mysql.sql` },
+      { content: generateSQL('sqlite'), filename: `${schema.name}_sqlite.sql` },
+      { content: generateTypeScript(), filename: `${schema.name}_types.ts` },
+      { content: generatePrismaSchema(), filename: 'schema.prisma' },
+      { content: generateDocumentation(), filename: `${schema.name}_documentation.md` },
+      { content: generateMigrations(), filename: `${schema.name}_migrations.sql` },
+      { content: generateAPIEndpoints(), filename: `${schema.name}_api.js` },
+      { content: JSON.stringify(schema, null, 2), filename: `${schema.name}_schema.json` }
+    ];
+
+    files.forEach(file => {
+      setTimeout(() => downloadFile(file.content, file.filename, 'Archive'), 100);
+    });
+
+    toast({ title: "Archive téléchargée!", description: "Tous les fichiers ont été téléchargés" });
+  };
+
   const sqlPostgreSQL = generateSQL('postgresql');
   const sqlMySQL = generateSQL('mysql');
   const sqlSQLite = generateSQL('sqlite');
   const typeScript = generateTypeScript();
   const prismaSchema = generatePrismaSchema();
   const documentation = generateDocumentation();
+  const migrations = generateMigrations();
+  const apiEndpoints = generateAPIEndpoints();
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold mb-2">Génération et Export</h2>
-        <p className="text-slate-600">Votre schéma est prêt ! Téléchargez les fichiers générés</p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold mb-2">Génération et Export</h2>
+          <p className="text-slate-600">Votre schéma est prêt ! Téléchargez les fichiers générés</p>
+        </div>
+        
+        <Button onClick={downloadAllFiles} className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700">
+          <Download className="w-4 h-4 mr-2" />
+          Télécharger Tout
+        </Button>
       </div>
 
       {/* Statistiques finales */}
@@ -237,7 +335,7 @@ export default function Step5Generation({
         <Card>
           <CardContent className="p-4 text-center">
             <FileText className="w-8 h-8 mx-auto mb-2 text-purple-600" />
-            <div className="text-2xl font-bold">6</div>
+            <div className="text-2xl font-bold">9</div>
             <div className="text-sm text-slate-600">Formats disponibles</div>
           </CardContent>
         </Card>
@@ -257,13 +355,16 @@ export default function Step5Generation({
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-6">
+            <TabsList className="grid w-full grid-cols-9 text-xs">
               <TabsTrigger value="sql">SQL</TabsTrigger>
               <TabsTrigger value="typescript">TypeScript</TabsTrigger>
               <TabsTrigger value="prisma">Prisma</TabsTrigger>
-              <TabsTrigger value="doc">Documentation</TabsTrigger>
+              <TabsTrigger value="doc">Docs</TabsTrigger>
               <TabsTrigger value="json">JSON</TabsTrigger>
+              <TabsTrigger value="migrations">Migrations</TabsTrigger>
+              <TabsTrigger value="api">API</TabsTrigger>
               <TabsTrigger value="resume">Résumé</TabsTrigger>
+              <TabsTrigger value="stats">Stats</TabsTrigger>
             </TabsList>
             
             <TabsContent value="sql" className="space-y-4">
@@ -454,6 +555,58 @@ export default function Step5Generation({
                 className="font-mono text-sm h-96"
               />
             </TabsContent>
+
+            <TabsContent value="migrations">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-medium">Migrations SQL</h3>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => copyToClipboard(migrations, 'Migrations')}
+                  >
+                    {copied === 'Migrations' ? <CheckCircle className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => downloadFile(migrations, `${schema.name}_migrations.sql`, 'Migrations')}
+                  >
+                    <Download className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+              <Textarea
+                value={migrations}
+                readOnly
+                className="font-mono text-sm h-96"
+              />
+            </TabsContent>
+
+            <TabsContent value="api">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-medium">Endpoints API</h3>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => copyToClipboard(apiEndpoints, 'API')}
+                  >
+                    {copied === 'API' ? <CheckCircle className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => downloadFile(apiEndpoints, `${schema.name}_api.js`, 'API')}
+                  >
+                    <Download className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+              <Textarea
+                value={apiEndpoints}
+                readOnly
+                className="font-mono text-sm h-96"
+              />
+            </TabsContent>
             
             <TabsContent value="resume">
               <div className="space-y-4">
@@ -488,6 +641,94 @@ export default function Step5Generation({
                     </Card>
                   ))}
                 </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="stats">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Types de Champs</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {(() => {
+                      const typeCount: Record<string, number> = {};
+                      schema.tables.forEach(table => {
+                        table.fields.forEach(field => {
+                          typeCount[field.type_general] = (typeCount[field.type_general] || 0) + 1;
+                        });
+                      });
+                      return Object.entries(typeCount).map(([type, count]) => (
+                        <div key={type} className="flex justify-between items-center mb-2">
+                          <span className="text-sm">{type}</span>
+                          <Badge variant="outline">{count}</Badge>
+                        </div>
+                      ));
+                    })()}
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Contraintes</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-sm">Clés primaires</span>
+                        <Badge variant="outline">
+                          {schema.tables.reduce((acc, table) => acc + table.fields.filter(f => f.primary_key).length, 0)}
+                        </Badge>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm">Champs requis</span>
+                        <Badge variant="outline">
+                          {schema.tables.reduce((acc, table) => acc + table.fields.filter(f => f.required).length, 0)}
+                        </Badge>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm">Champs uniques</span>
+                        <Badge variant="outline">
+                          {schema.tables.reduce((acc, table) => acc + table.fields.filter(f => f.unique).length, 0)}
+                        </Badge>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm">Clés étrangères</span>
+                        <Badge variant="outline">
+                          {schema.tables.reduce((acc, table) => acc + table.fields.filter(f => f.foreign_key).length, 0)}
+                        </Badge>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Complexité</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-sm">Tables simples</span>
+                        <Badge variant="outline">
+                          {schema.tables.filter(t => t.fields.length <= 5).length}
+                        </Badge>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm">Tables moyennes</span>
+                        <Badge variant="outline">
+                          {schema.tables.filter(t => t.fields.length > 5 && t.fields.length <= 10).length}
+                        </Badge>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm">Tables complexes</span>
+                        <Badge variant="outline">
+                          {schema.tables.filter(t => t.fields.length > 10).length}
+                        </Badge>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             </TabsContent>
           </Tabs>
