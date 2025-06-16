@@ -53,10 +53,58 @@ export default function AISchemaGenerator({ onGenerate, onClose }: AISchemaGener
         description: 'Table des utilisateurs',
         category: 'Authentication',
         fields: [
-          { name: 'id', type_general: 'uuid', type_sql: 'UUID', required: true, primary_key: true, description: 'Identifiant unique', example_value: '', slug_compatible: false, acf_field_type: 'text', ui_component: 'input' },
-          { name: 'email', type_general: 'string', type_sql: 'VARCHAR(255)', required: true, unique: true, description: 'Email de connexion', example_value: '', slug_compatible: false, acf_field_type: 'email', ui_component: 'input' },
-          { name: 'password', type_general: 'string', type_sql: 'VARCHAR(255)', required: true, description: 'Mot de passe hashé', example_value: '', slug_compatible: false, acf_field_type: 'password', ui_component: 'input' },
-          { name: 'created_at', type_general: 'datetime', type_sql: 'TIMESTAMP', required: true, description: 'Date de création', example_value: '', slug_compatible: false, acf_field_type: 'date_time_picker', ui_component: 'input' }
+          { 
+            name: 'id', 
+            type_general: 'uuid', 
+            type_sql: 'UUID', 
+            required: true, 
+            unique: true,
+            primary_key: true, 
+            description: 'Identifiant unique', 
+            example_value: '', 
+            slug_compatible: false, 
+            acf_field_type: 'text', 
+            ui_component: 'input' 
+          },
+          { 
+            name: 'email', 
+            type_general: 'string', 
+            type_sql: 'VARCHAR(255)', 
+            required: true, 
+            unique: true, 
+            primary_key: false,
+            description: 'Email de connexion', 
+            example_value: '', 
+            slug_compatible: false, 
+            acf_field_type: 'email', 
+            ui_component: 'input' 
+          },
+          { 
+            name: 'password', 
+            type_general: 'string', 
+            type_sql: 'VARCHAR(255)', 
+            required: true, 
+            unique: false,
+            primary_key: false,
+            description: 'Mot de passe hashé', 
+            example_value: '', 
+            slug_compatible: false, 
+            acf_field_type: 'password', 
+            ui_component: 'input' 
+          },
+          { 
+            name: 'created_at', 
+            type_general: 'datetime', 
+            type_sql: 'TIMESTAMP', 
+            required: true, 
+            unique: false,
+            primary_key: false,
+            description: 'Date de création', 
+            example_value: '', 
+            slug_compatible: false, 
+            acf_field_type: 'date_time_picker', 
+            ui_component: 'input' 
+          }
         ]
       });
     }
@@ -68,10 +116,58 @@ export default function AISchemaGenerator({ onGenerate, onClose }: AISchemaGener
         description: 'Table des produits',
         category: 'E-commerce',
         fields: [
-          { name: 'id', type_general: 'uuid', type_sql: 'UUID', required: true, primary_key: true, description: 'Identifiant unique', example_value: '', slug_compatible: false, acf_field_type: 'text', ui_component: 'input' },
-          { name: 'name', type_general: 'string', type_sql: 'VARCHAR(255)', required: true, description: 'Nom du produit', example_value: '', slug_compatible: false, acf_field_type: 'text', ui_component: 'input' },
-          { name: 'price', type_general: 'float', type_sql: 'DECIMAL(10,2)', required: true, description: 'Prix du produit', example_value: '', slug_compatible: false, acf_field_type: 'number', ui_component: 'input' },
-          { name: 'description', type_general: 'text', type_sql: 'TEXT', required: false, description: 'Description du produit', example_value: '', slug_compatible: false, acf_field_type: 'textarea', ui_component: 'textarea' }
+          { 
+            name: 'id', 
+            type_general: 'uuid', 
+            type_sql: 'UUID', 
+            required: true, 
+            unique: true,
+            primary_key: true, 
+            description: 'Identifiant unique', 
+            example_value: '', 
+            slug_compatible: false, 
+            acf_field_type: 'text', 
+            ui_component: 'input' 
+          },
+          { 
+            name: 'name', 
+            type_general: 'string', 
+            type_sql: 'VARCHAR(255)', 
+            required: true, 
+            unique: false,
+            primary_key: false,
+            description: 'Nom du produit', 
+            example_value: '', 
+            slug_compatible: false, 
+            acf_field_type: 'text', 
+            ui_component: 'input' 
+          },
+          { 
+            name: 'price', 
+            type_general: 'float', 
+            type_sql: 'DECIMAL(10,2)', 
+            required: true, 
+            unique: false,
+            primary_key: false,
+            description: 'Prix du produit', 
+            example_value: '', 
+            slug_compatible: false, 
+            acf_field_type: 'number', 
+            ui_component: 'input' 
+          },
+          { 
+            name: 'description', 
+            type_general: 'text', 
+            type_sql: 'TEXT', 
+            required: false, 
+            unique: false,
+            primary_key: false,
+            description: 'Description du produit', 
+            example_value: '', 
+            slug_compatible: false, 
+            acf_field_type: 'textarea', 
+            ui_component: 'textarea' 
+          }
         ]
       });
     }
