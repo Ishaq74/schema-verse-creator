@@ -5,8 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowRight, Link, CheckCircle, AlertTriangle, Database } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ArrowRight, Link, CheckCircle, AlertTriangle, Database, Eye, Settings, Lightbulb } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import RelationDiagram from './RelationDiagram';
+import RelationSuggestions from './RelationSuggestions';
 
 interface Relation {
   id: string;
@@ -68,23 +71,27 @@ export default function Step4Relations({
     return errors.length === 0;
   };
 
-  const addRelation = () => {
-    if (!newRelation.fromTable || !newRelation.fromField || !newRelation.toTable || !newRelation.toField || !newRelation.type) {
+  const addRelation = (relationData?: Omit<Relation, 'id'>) => {
+    const relation = relationData || newRelation;
+    
+    if (!relation.fromTable || !relation.fromField || !relation.toTable || !relation.toField || !relation.type) {
       toast({ title: "Relation incomplète", description: "Veuillez remplir tous les champs", variant: "destructive" });
       return;
     }
     
-    const relation: Relation = {
+    const newRelationObj: Relation = {
       id: `rel_${Date.now()}`,
-      fromTable: newRelation.fromTable!,
-      fromField: newRelation.fromField!,
-      toTable: newRelation.toTable!,
-      toField: newRelation.toField!,
-      type: newRelation.type!
+      fromTable: relation.fromTable!,
+      fromField: relation.fromField!,
+      toTable: relation.toTable!,
+      toField: relation.toField!,
+      type: relation.type!
     };
     
-    setRelations([...relations, relation]);
-    setNewRelation({});
+    setRelations([...relations, newRelationObj]);
+    if (!relationData) {
+      setNewRelation({});
+    }
     toast({ title: "Relation ajoutée", description: "La relation a été créée avec succès" });
   };
 
@@ -164,157 +171,161 @@ export default function Step4Relations({
         </Card>
       </div>
 
-      {/* Gestion des relations */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <Link className="w-5 h-5 mr-2" />
-            Relations entre Tables
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Ajouter une nouvelle relation */}
-          <div className="p-4 border rounded-lg bg-slate-50">
-            <h3 className="font-medium mb-3">Ajouter une relation</h3>
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-2 items-end">
-              <div>
-                <label className="text-sm text-slate-600">Table source</label>
-                <Select value={newRelation.fromTable} onValueChange={(value) => setNewRelation({...newRelation, fromTable: value, fromField: undefined})}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Table" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {schema.tables.map(table => (
-                      <SelectItem key={table.id} value={table.name}>{table.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <label className="text-sm text-slate-600">Champ source</label>
-                <Select value={newRelation.fromField} onValueChange={(value) => setNewRelation({...newRelation, fromField: value})}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Champ" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {getTableFields(newRelation.fromTable || '').map(field => (
-                      <SelectItem key={field.name} value={field.name}>{field.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <label className="text-sm text-slate-600">Table cible</label>
-                <Select value={newRelation.toTable} onValueChange={(value) => setNewRelation({...newRelation, toTable: value, toField: undefined})}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Table" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {schema.tables.map(table => (
-                      <SelectItem key={table.id} value={table.name}>{table.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <label className="text-sm text-slate-600">Champ cible</label>
-                <Select value={newRelation.toField} onValueChange={(value) => setNewRelation({...newRelation, toField: value})}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Champ" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {getTableFields(newRelation.toTable || '').map(field => (
-                      <SelectItem key={field.name} value={field.name}>{field.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <label className="text-sm text-slate-600">Type</label>
-                <Select value={newRelation.type} onValueChange={(value: any) => setNewRelation({...newRelation, type: value})}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="one-to-one">1:1</SelectItem>
-                    <SelectItem value="one-to-many">1:N</SelectItem>
-                    <SelectItem value="many-to-many">N:N</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <Button className="mt-3" onClick={addRelation}>
-              Ajouter la relation
-            </Button>
-          </div>
+      {/* Relations suggérées */}
+      <RelationSuggestions 
+        schema={schema} 
+        onAddRelation={addRelation}
+      />
 
-          {/* Liste des relations */}
-          <div className="space-y-2">
-            {relations.map(relation => (
-              <div key={relation.id} className="flex items-center justify-between p-3 border rounded-lg">
-                <div className="flex items-center space-x-2">
-                  <Badge variant="outline">{relation.fromTable}</Badge>
-                  <span className="text-sm text-slate-600">{relation.fromField}</span>
-                  <ArrowRight className="w-4 h-4 text-slate-400" />
-                  <Badge variant="outline">{relation.toTable}</Badge>
-                  <span className="text-sm text-slate-600">{relation.toField}</span>
-                  <Badge variant="secondary">{relation.type}</Badge>
+      {/* Interface avec onglets */}
+      <Tabs defaultValue="editor" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="editor" className="flex items-center gap-2">
+            <Settings className="h-4 w-4" />
+            Éditeur de Relations
+          </TabsTrigger>
+          <TabsTrigger value="diagram" className="flex items-center gap-2">
+            <Eye className="h-4 w-4" />
+            Diagramme Visuel
+          </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="editor" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Link className="w-5 h-5 mr-2" />
+                Relations entre Tables
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Ajouter une nouvelle relation */}
+              <div className="p-4 border rounded-lg bg-slate-50">
+                <h3 className="font-medium mb-3">Ajouter une relation manuelle</h3>
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-2 items-end">
+                  <div>
+                    <label className="text-sm text-slate-600">Table source</label>
+                    <Select value={newRelation.fromTable} onValueChange={(value) => setNewRelation({...newRelation, fromTable: value, fromField: undefined})}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Table" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {schema.tables.map(table => (
+                          <SelectItem key={table.id} value={table.name}>{table.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div>
+                    <label className="text-sm text-slate-600">Champ source</label>
+                    <Select value={newRelation.fromField} onValueChange={(value) => setNewRelation({...newRelation, fromField: value})}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Champ" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {getTableFields(newRelation.fromTable || '').map(field => (
+                          <SelectItem key={field.name} value={field.name}>{field.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div>
+                    <label className="text-sm text-slate-600">Table cible</label>
+                    <Select value={newRelation.toTable} onValueChange={(value) => setNewRelation({...newRelation, toTable: value, toField: undefined})}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Table" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {schema.tables.map(table => (
+                          <SelectItem key={table.id} value={table.name}>{table.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div>
+                    <label className="text-sm text-slate-600">Champ cible</label>
+                    <Select value={newRelation.toField} onValueChange={(value) => setNewRelation({...newRelation, toField: value})}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Champ" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {getTableFields(newRelation.toTable || '').map(field => (
+                          <SelectItem key={field.name} value={field.name}>{field.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div>
+                    <label className="text-sm text-slate-600">Type</label>
+                    <Select value={newRelation.type} onValueChange={(value: any) => setNewRelation({...newRelation, type: value})}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="one-to-one">1:1</SelectItem>
+                        <SelectItem value="one-to-many">1:N</SelectItem>
+                        <SelectItem value="many-to-many">N:N</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={() => removeRelation(relation.id)}
-                >
-                  Supprimer
+                <Button className="mt-3" onClick={() => addRelation()}>
+                  Ajouter la relation
                 </Button>
               </div>
-            ))}
-            {relations.length === 0 && (
-              <div className="text-center text-slate-500 py-8">
-                Aucune relation définie
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
 
-      {/* Aperçu du schéma */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <Database className="w-5 h-5 mr-2" />
-            Aperçu du Schéma
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {schema.tables.map(table => (
-              <div key={table.id} className="border rounded-lg p-3">
-                <div className="font-medium text-blue-600 mb-2">{table.name}</div>
-                <div className="space-y-1">
-                  {table.fields.slice(0, 5).map(field => (
-                    <div key={field.name} className="text-sm flex items-center justify-between">
-                      <span className={field.primary_key ? 'font-medium' : ''}>{field.name}</span>
-                      <Badge variant="outline" className="text-xs">
-                        {field.type_general}
+              {/* Liste des relations */}
+              <div className="space-y-2">
+                {relations.map(relation => (
+                  <div key={relation.id} className="flex items-center justify-between p-3 border rounded-lg bg-white">
+                    <div className="flex items-center space-x-2">
+                      <Badge variant="outline" className="bg-blue-50 text-blue-700">{relation.fromTable}</Badge>
+                      <span className="text-sm text-slate-600">{relation.fromField}</span>
+                      <ArrowRight className="w-4 h-4 text-slate-400" />
+                      <Badge variant="outline" className="bg-green-50 text-green-700">{relation.toTable}</Badge>
+                      <span className="text-sm text-slate-600">{relation.toField}</span>
+                      <Badge 
+                        variant="secondary" 
+                        className={`text-xs ${
+                          relation.type === 'one-to-many' ? 'bg-blue-100 text-blue-800' :
+                          relation.type === 'one-to-one' ? 'bg-green-100 text-green-800' :
+                          'bg-purple-100 text-purple-800'
+                        }`}
+                      >
+                        {relation.type === 'one-to-one' && '1:1'}
+                        {relation.type === 'one-to-many' && '1:N'}
+                        {relation.type === 'many-to-many' && 'N:N'}
                       </Badge>
                     </div>
-                  ))}
-                  {table.fields.length > 5 && (
-                    <div className="text-xs text-slate-500">
-                      +{table.fields.length - 5} autres champs...
-                    </div>
-                  )}
-                </div>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => removeRelation(relation.id)}
+                    >
+                      Supprimer
+                    </Button>
+                  </div>
+                ))}
+                {relations.length === 0 && (
+                  <div className="text-center text-slate-500 py-8">
+                    <Link className="h-12 w-12 mx-auto mb-4 text-slate-300" />
+                    <p>Aucune relation définie</p>
+                    <p className="text-sm">Utilisez les suggestions ci-dessus ou créez une relation manuelle</p>
+                  </div>
+                )}
               </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="diagram">
+          <RelationDiagram schema={schema} relations={relations} />
+        </TabsContent>
+      </Tabs>
 
       <div className="flex justify-between">
         <Button variant="outline" onClick={onBack}>
